@@ -1,3 +1,9 @@
+# files/dirs to ignore
+
+
+# IDLE
+*.idea/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

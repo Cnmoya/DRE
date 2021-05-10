@@ -1,12 +1,9 @@
 #!/bin/env python
 
 from astropy.io import fits
-import multiprocessing as mp
-from threading import Thread
-import ctypes
-import numpy as np
-from scipy.signal import fftconvolve
-from crunch import E_fit
+import cupy as cp
+from cupyx.scipy.ndimage import convolve
+from opt_einsum import contract_expression
 from h5py import File
 import argparse
 import os
@@ -15,25 +12,23 @@ import time
 import datetime
 
 
-class ModelCPU:
-    def __init__(self, models_file, n_cpu, chunk_size, out_compression):
+class ModelGPU:
+    def __init__(self, models_file, out_compression):
         self.models = None
         self.load_models(models_file)
-        self.chunk_size = chunk_size
+
         self.compression = out_compression
 
-        self.n_cpu = n_cpu
-
-        self.input_queue = mp.Queue()
-        self.output_queue = mp.Queue()
-        self.feed_thread = None
-        self.output_thread = None
-        self.processes = []
+        self.cube_x_image = contract_expression("ijkxy,xy->ijk", (10, 13, 21, 128, 128), (128, 128))
+        self.image_x_image = contract_expression("xy,xy->", (128, 128), (128, 128))
+        self.scale_model = contract_expression("ijk,ijkxy->ijkxy", (10, 13, 21), (10, 13, 21, 128, 128))
 
     def load_models(self, models_file):
         cube = fits.getdata(models_file)
         cube = cube.reshape((10, 13, 128, 21, 128))
         cube = cube.swapaxes(2, 3)
+        # enviar a la GPU
+        cube = cp.array(cube)
         self.models = cube
 
     def convolve(self, psf):
@@ -42,72 +37,46 @@ class ModelCPU:
         for i in range(self.models.shape[0]):
             for j in range(self.models.shape[1]):
                 for k in range(self.models.shape[2]):
-                    self.models[i, j, k] = fftconvolve(self.models[i, j, k], psf, mode='same')
+                    self.models[i, j, k] = convolve(self.models[i, j, k], psf, mode='nearest')
         print(f"Done! ({time.time() - start:2.2f}s)")
 
-    def to_shared_mem(self):
-        shape = self.models.shape
-        shared_array_base = mp.Array(ctypes.c_float, int(np.prod(shape)))
-        shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
-        shared_array = shared_array.reshape(shape)
-        shared_array[:] = self.models
-        self.models = shared_array
+    def E_fit_gpu(self, data, seg, noise):
+        # enviar a la GPU
+        data = cp.array(data)
+        seg = cp.array(seg)
+        noise = cp.array(noise)
 
-    def cpu_worker(self, input_q, output_q):
-        for name, data, segment, noise in iter(input_q.get, ('STOP', '', '', '')):
-            chi = E_fit(self.models, data, segment, noise)
-            output_q.put((name, chi))
+        flux_models = self.cube_x_image(self.models, seg, backend='cupy')
+        flux_data = self.image_x_image(data, seg, backend='cupy')
+        X = flux_data / flux_models
+        scaled_models = self.scale_model(X, self.models, backend='cupy')
+        diff = data - scaled_models
+        residual = (diff ** 2) / (cp.sqrt((scaled_models + noise ** 2)))
+        chi = self.cube_x_image(residual, seg, backend='cupy')
 
-    def feed_processes(self, names, input_file):
-        for name in names:
-            while self.input_queue.qsize() > self.chunk_size:
-                time.sleep(0.5)
-            with File(input_file, 'r') as input_h5f:
-                data = input_h5f[name]
-                self.input_queue.put((name, data['obj'][:], data['seg'][:], data['rms'][:]))
-        for i in range(self.n_cpu):
-            self.input_queue.put(('STOP', '', '', ''))
-
-    def get_output(self, n_tasks, output_file, progress_status):
-        for i in range(n_tasks):
-            name, chi = self.output_queue.get()
-            with File(output_file, 'a') as output_h5f:
-                output_h5f.create_dataset(f'{name}', data=chi,
-                                          dtype='float32', **self.compression)
-            progress(i+1, n_tasks, progress_status)
-
-    def start_processes(self, names, input_file, output_file, progress_status):
-        self.feed_thread = Thread(target=self.feed_processes, args=(names, input_file))
-        self.output_thread = Thread(target=self.get_output, args=(len(names), output_file, progress_status))
-        self.feed_thread.start()
-        self.output_thread.start()
-        self.processes = []
-        for i in range(self.n_cpu):
-            p = mp.Process(target=self.cpu_worker, args=(self.input_queue, self.output_queue))
-            self.processes.append(p)
-            p.start()
-
-    def stop_processes(self):
-        for p in self.processes:
-            p.join()
-        self.feed_thread.join()
-        self.output_thread.join()
+        area = seg.sum()
+        chi = chi / area
+        return chi
 
     def fit_data(self, input_file, output_file, progress_status):
         start = time.time()
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
         print(f"{progress_status}: {input_file}\t{len(names)} objects")
-        self.start_processes(names, input_file, output_file, progress_status)
-        self.stop_processes()
+        for i, name in enumerate(names):
+            with File(input_file, 'r') as input_h5f:
+                data = input_h5f[name]
+                chi = self.E_fit_gpu(data['obj'][:], data['seg'][:], data['rms'][:])
+            with File(output_file, 'a') as output_h5f:
+                output_h5f.create_dataset(f'{name}', data=chi,
+                                          dtype='float32', **self.compression)
+            progress(i+1, len(names), progress_status)
         time_delta = time.time() - start
         mean_time = time_delta / len(names)
         print(f"\n{progress_status}: finished in {datetime.timedelta(seconds=time_delta)}s ({mean_time:1.3f} s/obj)")
 
 
 def feed_model(model, input_dir, output_dir):
-    # enviamos el modelo a memoria compartida entre procesos
-    model.to_shared_mem()
     # generamos una lista de archivos de entrada
     _, _, files = next(os.walk(input_dir))
     if not os.path.exists(args.output):
@@ -118,7 +87,7 @@ def feed_model(model, input_dir, output_dir):
         output_file = f"{output_dir}/{name}_chi.h5"
         if os.path.isfile(output_file):
             os.remove(output_file)
-        # realizamos un fit en paralelo
+        # realizamos un fit en GPU
         model.fit_data(input_file, output_file, progress_status=f"({i + 1}/{len(files)})")
 
 
@@ -133,6 +102,14 @@ def progress(count, total, status=''):
     sys.stdout.flush()
 
 
+# chequamos que existe una GPU
+try:
+    cp.cuda.runtime.getDevice()
+except cp.cuda.runtime.CUDARuntimeError:
+    print("cudaErrorNoDevice: no CUDA-capable device is detected")
+    sys.exit(1)
+
+
 if __name__ == "__main__":
     def parse_arguments():
         parser = argparse.ArgumentParser()
@@ -142,8 +119,6 @@ if __name__ == "__main__":
         parser.add_argument("-i", "--input", help="root directory to cuts of data (def: Cuts)",
                             default="Cuts", type=str)
         parser.add_argument("-o", "--output", help="output directory (def: Chi)", type=str, default="Chi")
-        parser.add_argument("--cpu", help="Number of cpu's to use", type=int, default=1)
-        parser.add_argument("--chunk", type=int, default=100)
         parser.add_argument("--compression", help="compresion level for the h5 output file,"
                                                   "lower is faster (def: medium)",
                             choices=["none", "low", "medium", "high"], default="medium")
@@ -160,7 +135,7 @@ if __name__ == "__main__":
 
     args = parse_arguments()
 
-    model_ = ModelCPU(args.model, args.cpu, args.chunk, args.compression)
+    model_ = ModelGPU(args.model, args.compression)
     if args.psf:
         model_.convolve("psf")
     feed_model(model_, args.input, args.output)

@@ -1,5 +1,11 @@
 # files/dirs to ignore
-
+run_dre.py
+scripts/sex_dre.sh
+scripts/sex_dre.py
+scripts/sex_source/
+scripts/test_multiprocess.py
+scripts/test.h5
+modelbulge.fits
 
 # IDLE
 *.idea/

@@ -72,14 +72,16 @@ class ModelGPU:
         start = time.time()
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
-        print(f"{progress_status}: {os.path.split(input_file)[1]}\t{len(names)} objects\n")
-        for name in tqdm(names):
-            with File(input_file, 'r') as input_h5f:
-                data = input_h5f[name]
-                chi = self.E_fit_gpu(data['obj'][:], data['seg'][:], data['rms'][:])
-            with File(output_file, 'a') as output_h5f:
-                output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),
-                                          dtype='float32', **self.compression)
+        with tqdm(names) as pbar:
+            pbar.set_description(os.path.split(input_file)[1])
+            for name in tqdm(names):
+                with File(input_file, 'r') as input_h5f:
+                    data = input_h5f[name]
+                    chi = self.E_fit_gpu(data['obj'][:], data['seg'][:], data['rms'][:])
+                with File(output_file, 'a') as output_h5f:
+                    output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),
+                                              dtype='float32', **self.compression)
+                pbar.update()
         time_delta = time.time() - start
         mean_time = time_delta / len(names)
         print(f"\n{progress_status}: finished in {datetime.timedelta(seconds=time_delta)}s ({mean_time:1.3f} s/obj)")

@@ -13,10 +13,13 @@ import datetime
 
 
 class ModelGPU:
-    def __init__(self, models_file, out_compression):
+    def __init__(self, models_file, out_compression=None, convolved=False):
+        if out_compression is None:
+            out_compression = dict()
         self.models = None
         self.load_models(models_file)
 
+        self.convolved = convolved
         self.compression = out_compression
 
         self.cube_x_image = contract_expression("ijkxy,xy->ijk", (10, 13, 21, 128, 128), (128, 128))
@@ -31,14 +34,20 @@ class ModelGPU:
         cube = cp.array(cube)
         self.models = cube
 
-    def convolve(self, psf):
-        print("Convolving...")
-        start = time.time()
-        for i in range(self.models.shape[0]):
-            for j in range(self.models.shape[1]):
-                for k in range(self.models.shape[2]):
-                    self.models[i, j, k] = convolve(self.models[i, j, k], psf, mode='nearest')
-        print(f"Done! ({time.time() - start:2.2f}s)")
+    def convolve(self, psf_file):
+        if not self.convolved:
+            print("Convolving...")
+            start = time.time()
+            with open(psf_file, 'r') as psf_h5f:
+                psf = cp.array(psf_h5f[:])
+            for i in range(self.models.shape[0]):
+                for j in range(self.models.shape[1]):
+                    for k in range(self.models.shape[2]):
+                        self.models[i, j, k] = convolve(self.models[i, j, k], psf, mode='nearest')
+            print(f"Done! ({time.time() - start:2.2f}s)")
+            self.convolved = True
+        else:
+            print("This model has already been convolved, you should create a new model")
 
     def E_fit_gpu(self, data, seg, noise):
         # enviar a la GPU
@@ -58,7 +67,7 @@ class ModelGPU:
         chi = chi / area
         return chi
 
-    def fit_data(self, input_file, output_file, progress_status):
+    def fit_data(self, input_file, output_file, progress_status=''):
         start = time.time()
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
@@ -68,7 +77,7 @@ class ModelGPU:
                 data = input_h5f[name]
                 chi = self.E_fit_gpu(data['obj'][:], data['seg'][:], data['rms'][:])
             with File(output_file, 'a') as output_h5f:
-                output_h5f.create_dataset(f'{name}', data=chi,
+                output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),
                                           dtype='float32', **self.compression)
             progress(i+1, len(names), progress_status)
         time_delta = time.time() - start

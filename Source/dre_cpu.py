@@ -5,7 +5,7 @@ import multiprocessing as mp
 from threading import Thread
 import ctypes
 import numpy as np
-from scipy.signal import fftconvolve
+from astropy.convolution import convolve_fft
 from crunch import E_fit
 from h5py import File
 import argparse
@@ -16,7 +16,9 @@ import datetime
 
 
 class ModelCPU:
-    def __init__(self, models_file, n_cpu, chunk_size, out_compression):
+    def __init__(self, models_file, n_cpu, chunk_size, out_compression=None):
+        if out_compression is None:
+            out_compression = dict()
         self.models = None
         self.load_models(models_file)
         self.chunk_size = chunk_size
@@ -36,13 +38,15 @@ class ModelCPU:
         cube = cube.swapaxes(2, 3)
         self.models = cube
 
-    def convolve(self, psf):
+    def convolve(self, psf_file):
         print("Convolving...")
         start = time.time()
+        with open(psf_file, 'r') as psf_h5f:
+            psf = psf_h5f[:]
         for i in range(self.models.shape[0]):
             for j in range(self.models.shape[1]):
                 for k in range(self.models.shape[2]):
-                    self.models[i, j, k] = fftconvolve(self.models[i, j, k], psf, mode='same')
+                    self.models[i, j, k] = convolve_fft(self.models[i, j, k], psf)
         print(f"Done! ({time.time() - start:2.2f}s)")
 
     def to_shared_mem(self):

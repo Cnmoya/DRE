@@ -114,7 +114,7 @@ def feed_model(model, input_dir, output_dir):
     model.to_shared_mem()
     # generamos una lista de archivos de entrada
     _, _, files = next(os.walk(input_dir))
-    if not os.path.exists(args.output):
+    if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     for i, filename in enumerate(files):
         input_file = f"{input_dir}/{filename}"

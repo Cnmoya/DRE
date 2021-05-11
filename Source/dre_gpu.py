@@ -72,7 +72,7 @@ class ModelGPU:
         start = time.time()
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
-        print(f"{progress_status}: {input_file}\t{len(names)} objects")
+        print(f"{progress_status}: {os.path.split(input_file)[1]}\t{len(names)} objects\n")
         for name in tqdm(names):
             with File(input_file, 'r') as input_h5f:
                 data = input_h5f[name]
@@ -88,7 +88,7 @@ class ModelGPU:
 def feed_model(model, input_dir, output_dir):
     # generamos una lista de archivos de entrada
     _, _, files = next(os.walk(input_dir))
-    if not os.path.exists(args.output):
+    if not os.path.exists(output_dir):
         os.mkdir(output_dir)
     for i, filename in enumerate(files):
         input_file = f"{input_dir}/{filename}"

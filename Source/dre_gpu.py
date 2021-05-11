@@ -68,7 +68,6 @@ class ModelGPU:
         return chi
 
     def fit_data(self, input_file, output_file, progress_status=''):
-        start = time.time()
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
         for name in tqdm(names, desc=progress_status, mininterval=0.5):
@@ -78,8 +77,6 @@ class ModelGPU:
             with File(output_file, 'a') as output_h5f:
                 output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),
                                           dtype='float32', **self.compression)
-        time_delta = time.time() - start
-        mean_time = time_delta / len(names)
 
 
 def feed_model(model, input_dir, output_dir):

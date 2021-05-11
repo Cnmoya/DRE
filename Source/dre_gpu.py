@@ -9,7 +9,6 @@ import argparse
 import os
 import sys
 import time
-import datetime
 from tqdm import tqdm
 
 
@@ -72,19 +71,15 @@ class ModelGPU:
         start = time.time()
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
-        with tqdm(names) as pbar:
-            pbar.set_description(progress_status)
-            for name in names:
-                with File(input_file, 'r') as input_h5f:
-                    data = input_h5f[name]
-                    chi = self.E_fit_gpu(data['obj'][:], data['seg'][:], data['rms'][:])
-                with File(output_file, 'a') as output_h5f:
-                    output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),
-                                              dtype='float32', **self.compression)
-                pbar.update()
+        for name in tqdm(names, desc=progress_status, mininterval=0.5):
+            with File(input_file, 'r') as input_h5f:
+                data = input_h5f[name]
+                chi = self.E_fit_gpu(data['obj'][:], data['seg'][:], data['rms'][:])
+            with File(output_file, 'a') as output_h5f:
+                output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),
+                                          dtype='float32', **self.compression)
         time_delta = time.time() - start
         mean_time = time_delta / len(names)
-        print(f"\n{progress_status}: finished in {datetime.timedelta(seconds=time_delta)}s ({mean_time:1.3f} s/obj)")
 
 
 def feed_model(model, input_dir, output_dir):

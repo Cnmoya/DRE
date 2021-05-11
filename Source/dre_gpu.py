@@ -10,6 +10,7 @@ import os
 import sys
 import time
 import datetime
+from tqdm import tqdm
 
 
 class ModelGPU:
@@ -72,14 +73,13 @@ class ModelGPU:
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
         print(f"{progress_status}: {input_file}\t{len(names)} objects")
-        for i, name in enumerate(names):
+        for name in tqdm(names):
             with File(input_file, 'r') as input_h5f:
                 data = input_h5f[name]
                 chi = self.E_fit_gpu(data['obj'][:], data['seg'][:], data['rms'][:])
             with File(output_file, 'a') as output_h5f:
                 output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),
                                           dtype='float32', **self.compression)
-            progress(i+1, len(names), progress_status)
         time_delta = time.time() - start
         mean_time = time_delta / len(names)
         print(f"\n{progress_status}: finished in {datetime.timedelta(seconds=time_delta)}s ({mean_time:1.3f} s/obj)")
@@ -98,17 +98,6 @@ def feed_model(model, input_dir, output_dir):
             os.remove(output_file)
         # realizamos un fit en GPU
         model.fit_data(input_file, output_file, progress_status=f"({i + 1}/{len(files)})")
-
-
-def progress(count, total, status=''):
-    bar_len = 60
-    filled_len = int(round(bar_len * count / float(total)))
-
-    percents = round(100.0 * count / float(total), 1)
-    bar = '=' * filled_len + '-' * (bar_len - filled_len)
-
-    sys.stdout.write(f'{status}: [{bar}] {percents}%\r')
-    sys.stdout.flush()
 
 
 # chequamos que existe una GPU

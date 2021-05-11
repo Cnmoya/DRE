@@ -73,8 +73,8 @@ class ModelGPU:
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
         with tqdm(names) as pbar:
-            pbar.set_description(os.path.split(input_file)[1])
-            for name in tqdm(names):
+            pbar.set_description(progress_status)
+            for name in names:
                 with File(input_file, 'r') as input_h5f:
                     data = input_h5f[name]
                     chi = self.E_fit_gpu(data['obj'][:], data['seg'][:], data['rms'][:])

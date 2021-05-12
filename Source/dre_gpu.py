@@ -10,6 +10,7 @@ import os
 import sys
 import time
 from tqdm import tqdm
+from scripts.convolve_gpu import gpu_fftconvolve
 
 
 class ModelGPU:
@@ -36,15 +37,14 @@ class ModelGPU:
 
     def convolve(self, psf_file):
         if not self.convolved:
-            print("Convolving...")
-            start = time.time()
             with open(psf_file, 'r') as psf_h5f:
                 psf = cp.array(psf_h5f[:])
+            convolved_models = cp.zeros(self.models.shape)
+            start = time.time()
             for i in range(self.models.shape[0]):
-                for j in range(self.models.shape[1]):
-                    for k in range(self.models.shape[2]):
-                        self.models[i, j, k] = convolve(self.models[i, j, k], psf, mode='nearest')
+                convolved_models[i] = gpu_fftconvolve(self.models[i], psf[cp.newaxis, cp.newaxis], axes=(-2, -1))
             print(f"Done! ({time.time() - start:2.2f}s)")
+            self.models = convolved_models
             self.convolved = True
         else:
             print("This model has already been convolved, you should create a new model")

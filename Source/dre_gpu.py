@@ -2,7 +2,6 @@
 
 from astropy.io import fits
 import cupy as cp
-from cupyx.scipy.ndimage import convolve
 from opt_einsum import contract_expression
 from h5py import File
 import argparse
@@ -11,6 +10,7 @@ import sys
 import time
 from tqdm import tqdm
 from scripts.convolve_gpu import gpu_fftconvolve
+import matplotlib.pyplot as plt
 
 
 class ModelGPU:
@@ -28,7 +28,7 @@ class ModelGPU:
         self.scale_model = contract_expression("ijk,ijkxy->ijkxy", (10, 13, 21), (10, 13, 21, 128, 128))
 
     def load_models(self, models_file):
-        cube = fits.getdata(models_file)
+        cube = fits.getdata(models_file).astype('float')
         cube = cube.reshape((10, 13, 128, 21, 128))
         cube = cube.swapaxes(2, 3)
         # enviar a la GPU
@@ -37,8 +37,8 @@ class ModelGPU:
 
     def convolve(self, psf_file):
         if not self.convolved:
-            with open(psf_file, 'r') as psf_h5f:
-                psf = cp.array(psf_h5f[:])
+            with File(psf_file, 'r') as psf_h5f:
+                psf = cp.array(psf_h5f['psf'][:])
             convolved_models = cp.zeros(self.models.shape)
             start = time.time()
             for i in range(self.models.shape[0]):
@@ -77,6 +77,15 @@ class ModelGPU:
             with File(output_file, 'a') as output_h5f:
                 output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),
                                           dtype='float32', **self.compression)
+
+    def visualize_model(self, ratio_idx, figsize=(20, 20), vmin=0, vmax=100, cmap='gray'):
+        plt.figure(figsize=figsize)
+
+        models_slice = self.models.swapaxes(2, 3)[ratio_idx]
+        models_slice = models_slice.reshape(self.models.shape[1] * 128, self.models.shape[2] * 128)
+        plt.imshow(cp.asnumpy(models_slice), vmin=vmin, vmax=vmax, cmap=cmap)
+        plt.axis('off')
+        plt.show()
 
 
 def feed_model(model, input_dir, output_dir):

@@ -33,7 +33,7 @@ class ModelCPU:
         self.processes = []
 
     def load_models(self, models_file):
-        cube = fits.getdata(models_file)
+        cube = fits.getdata(models_file).astype('float')
         cube = cube.reshape((10, 13, 128, 21, 128))
         cube = cube.swapaxes(2, 3)
         self.models = cube

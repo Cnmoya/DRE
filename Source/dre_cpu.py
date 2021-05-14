@@ -152,6 +152,7 @@ if __name__ == "__main__":
         parser.add_argument("--compression", help="compresion level for the h5 output file,"
                                                   "lower is faster (def: medium)",
                             choices=["none", "low", "medium", "high"], default="medium")
+        parser.add_argument("--silent", help="Suppress numpy warnings", action='store_true')
 
         args_ = parser.parse_args()
 
@@ -164,6 +165,9 @@ if __name__ == "__main__":
         return args_
 
     args = parse_arguments()
+
+    if args.silent:
+        np.seterr(all='ignore')
 
     model_ = ModelCPU(args.model, args.cpu, args.chunk, args.compression)
     if args.psf:

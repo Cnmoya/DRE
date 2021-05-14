@@ -7,7 +7,7 @@ import sys
 import time
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from convolve_gpu import gpu_fftconvolve
+from .convolve_gpu import gpu_fftconvolve
 
 
 class ModelGPU:

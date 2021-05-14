@@ -22,7 +22,7 @@ def E_fit(_cube: np.ndarray((10, 13, 21, 128, 128), '>f4'),
     X = flux_data / flux_models
     scaled_models = X[:, :, :, np.newaxis, np.newaxis] * _cube
     resta = data - scaled_models
-    residuo = (resta ** 2) / np.sqrt(scaled_models + noise ** 2)
+    residuo = (resta ** 2) / np.sqrt(np.abs(scaled_models) + noise ** 2)
     chi = np.einsum("ijkxy,xy->ijk", residuo, seg)
 
     area = seg.sum()

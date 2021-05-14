@@ -1,25 +1,26 @@
-#!/bin/env python
-
 from astropy.io import fits
 import cupy as cp
 from opt_einsum import contract_expression
 from h5py import File
-import argparse
 import os
 import sys
 import time
 from tqdm import tqdm
-from scipy.fft._helper import _init_nd_shape_and_axes
-from scipy.fft import next_fast_len
 import matplotlib.pyplot as plt
+from convolve_gpu import gpu_fftconvolve
 
 
 class ModelGPU:
-    def __init__(self, models_file, out_compression=None, convolved=False):
+    def __init__(self, models_file=None, out_compression=None, convolved=False):
+        self.models = None
+        self.header = None
+
+        if models_file is None:
+            models_file = os.path.dirname(os.path.realpath(__file__))
+        self.load_models(models_file)
+
         if out_compression is None:
             out_compression = dict()
-        self.models = None
-        self.load_models(models_file)
 
         self.convolved = convolved
         self.compression = out_compression
@@ -28,13 +29,28 @@ class ModelGPU:
         self.image_x_image = contract_expression("xy,xy->", (128, 128), (128, 128))
         self.scale_model = contract_expression("ijk,ijkxy->ijkxy", (10, 13, 21), (10, 13, 21, 128, 128))
 
+    @property
+    def LOGH(self):
+        return [self.header["LOGH0"] + i * self.header["DLOGH"] for i in range(self.header["NLOGH"])]
+
+    @property
+    def POSANG(self):
+        return [self.header["POSANG0"] + i * self.header["DPOSANG"] for i in range(self.header["NPOSANG"])]
+
+    @property
+    def AXRAT(self):
+        return [self.header["AXRAT0"] + i * self.header["DAXRAT"] for i in range(self.header["NAXRAT"])]
+
     def load_models(self, models_file):
+        # cargar el modelo
         cube = fits.getdata(models_file).astype('float')
         cube = cube.reshape((10, 13, 128, 21, 128))
         cube = cube.swapaxes(2, 3)
         # enviar a la GPU
         cube = cp.array(cube)
         self.models = cube
+        # header
+        self.header = fits.getheader(models_file)
 
     def convolve(self, psf_file):
         if not self.convolved:
@@ -61,7 +77,7 @@ class ModelGPU:
         X = flux_data / flux_models
         scaled_models = self.scale_model(X, self.models, backend='cupy')
         diff = data - scaled_models
-        residual = (diff ** 2) / (cp.sqrt((scaled_models + noise ** 2)))
+        residual = (diff ** 2) / cp.sqrt(cp.abs(scaled_models) + noise ** 2)
         chi = self.cube_x_image(residual, seg, backend='cupy')
 
         area = seg.sum()
@@ -104,71 +120,9 @@ def feed_model(model, input_dir, output_dir):
         model.fit_data(input_file, output_file, progress_status=f"({i + 1}/{len(files)})")
 
 
-def _centered(arr, newshape):
-    # Return the center newshape portion of the array.
-    newshape = cp.asarray(newshape)
-    currshape = cp.array(arr.shape)
-    startind = (currshape - newshape) // 2
-    endind = startind + newshape
-    myslice = [slice(startind[k], endind[k]) for k in range(len(endind))]
-    return arr[tuple(myslice)]
-
-
-def gpu_fftconvolve(in1, in2, axes=None):
-    _, axes = _init_nd_shape_and_axes(in1, shape=None, axes=axes)
-
-    s1 = in1.shape
-    s2 = in2.shape
-
-    shape = [max((s1[i], s2[i])) if i not in axes else s1[i] + s2[i] - 1
-             for i in range(in1.ndim)]
-
-    fshape = [next_fast_len(shape[a], True) for a in axes]
-
-    sp1 = cp.fft.rfft2(in1, fshape, axes=axes)
-    sp2 = cp.fft.rfft2(in2, fshape, axes=axes)
-
-    ret = cp.fft.irfft2(sp1 * sp2, fshape, axes=axes)
-
-    fslice = tuple([slice(sz) for sz in shape])
-    ret = ret[fslice]
-
-    return _centered(ret, s1).copy()
-
 # chequamos que existe una GPU
 try:
     cp.cuda.runtime.getDevice()
 except cp.cuda.runtime.CUDARuntimeError:
     print("cudaErrorNoDevice: no CUDA-capable device is detected")
     sys.exit(1)
-
-
-if __name__ == "__main__":
-    def parse_arguments():
-        parser = argparse.ArgumentParser()
-
-        parser.add_argument("model", help="models cube file", type=str)
-        parser.add_argument("--psf", help="psf file", type=str, default=None)
-        parser.add_argument("-i", "--input", help="root directory to cuts of data (def: Cuts)",
-                            default="Cuts", type=str)
-        parser.add_argument("-o", "--output", help="output directory (def: Chi)", type=str, default="Chi")
-        parser.add_argument("--compression", help="compresion level for the h5 output file,"
-                                                  "lower is faster (def: medium)",
-                            choices=["none", "low", "medium", "high"], default="medium")
-
-        args_ = parser.parse_args()
-
-        compression_types = {"none": dict(),
-                             "low": {"compression": "lzf"},
-                             "medium": {"compression": "gzip", "compression_opts": 4},
-                             "high": {"compression": "gzip", "compression_opts": 9}}
-        args_.compression = compression_types[args_.compression]
-
-        return args_
-
-    args = parse_arguments()
-
-    model_ = ModelGPU(args.model, args.compression)
-    if args.psf:
-        model_.convolve("psf")
-    feed_model(model_, args.input, args.output)

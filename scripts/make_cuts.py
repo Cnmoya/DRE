@@ -62,7 +62,8 @@ def cut_image(cats, out_name, seg, obj, data, noise, margin, max_stellarity, com
                     xo, yo = centroid_1dg(mini_obj)
                     x_shift, y_shift = 5.5 - xo, 5.5 - yo
                     h5_group = h5_file.create_group(f"{ext_number:02d}_{row['NUMBER']:0{cat_digits}d}")
-                    h5_group.create_dataset('obj', data=shift(obj_cut, (y_shift, x_shift)))
+                    h5_group.create_dataset('obj', data=shift(obj_cut, (y_shift, x_shift)),
+                                            dtype='float32', **compression)
                     h5_group.create_dataset('seg', data=shift(seg_cut, (y_shift, x_shift)),
                                             dtype='float32', **compression)
                     h5_group.create_dataset('rms', data=shift(rms_cut, (y_shift, x_shift)),

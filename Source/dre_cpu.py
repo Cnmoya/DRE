@@ -41,8 +41,8 @@ class ModelCPU:
     def convolve(self, psf_file):
         print("Convolving...")
         start = time.time()
-        with open(psf_file, 'r') as psf_h5f:
-            psf = psf_h5f[:]
+        with File(psf_file, 'r') as psf_h5f:
+            psf = psf_h5f['psf'][:]
         for i in range(self.models.shape[0]):
             for j in range(self.models.shape[1]):
                 for k in range(self.models.shape[2]):
@@ -138,6 +138,7 @@ def progress(count, total, status=''):
 
 
 if __name__ == "__main__":
+
     def parse_arguments():
         parser = argparse.ArgumentParser()
 
@@ -166,5 +167,5 @@ if __name__ == "__main__":
 
     model_ = ModelCPU(args.model, args.cpu, args.chunk, args.compression)
     if args.psf:
-        model_.convolve("psf")
+        model_.convolve(args.psf)
     feed_model(model_, args.input, args.output)

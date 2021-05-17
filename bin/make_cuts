@@ -1,0 +1,32 @@
+#!/bin/env python
+
+import argparse
+from DRE import Cutter
+
+if __name__ == "__main__":
+
+    def parse_arguments():
+        parser = argparse.ArgumentParser()
+
+        parser.add_argument("-t", "--tile", help="root directory to original data (def: Tile)",
+                            default="Tile", type=str)
+        parser.add_argument("-s", "--sextracted", help="root directory to sextracted data (def: Sextracted)",
+                            type=str, default="Sextracted")
+        parser.add_argument("-o", "--output", help="output directory (def: Cuts)", type=str, default="Cuts")
+        parser.add_argument("--margin", help="exclude objects outside a margin (def: 80)", type=int, default=80)
+        parser.add_argument("--max-stellarity",
+                            help="maximum SexTractor stellarity to be considered a galaxy (def: 0.5)",
+                            default=0.5)
+        parser.add_argument("--compression", help="compresion level for the h5 output file,"
+                                                  "lower is faster (def: medium)",
+                            choices=["none", "low", "medium", "high"], default="medium")
+
+        args_ = parser.parse_args()
+
+        return args_
+
+
+    args = parse_arguments()
+    cutter = Cutter(args.margin, args.max_stellarity, args.compression)
+    cutter.cut_tiles(args.tiles, args.sextracted, args.output)
+

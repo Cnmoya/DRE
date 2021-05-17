@@ -1,0 +1,46 @@
+#!/bin/env python
+
+import numpy as np
+import argparse
+from DRE import ModelCPU
+
+
+if __name__ == "__main__":
+
+    def parse_arguments():
+        parser = argparse.ArgumentParser()
+
+        parser.add_argument("model", help="models cube file", type=str)
+        parser.add_argument("--psf", help="psf file", type=str, default=None)
+        parser.add_argument("-i", "--input", help="root directory to cuts of data (def: Cuts)",
+                            default="Cuts", type=str)
+        parser.add_argument("-o", "--output", help="output directory (def: Chi)", type=str, default="Chi")
+        parser.add_argument("--cpu", help="Number of cpu's to use", type=int, default=1)
+        parser.add_argument("--chunk", type=int, default=100)
+        parser.add_argument("--compression", help="compresion level for the h5 output file,"
+                                                  "lower is faster (def: medium)",
+                            choices=["none", "low", "medium", "high"], default="medium")
+        parser.add_argument("--silent", help="Suppress numpy warnings", action='store_true')
+
+        args_ = parser.parse_args()
+
+        compression_types = {"none": dict(),
+                             "low": {"compression": "lzf"},
+                             "medium": {"compression": "gzip", "compression_opts": 4},
+                             "high": {"compression": "gzip", "compression_opts": 9}}
+        args_.compression = compression_types[args_.compression]
+
+        return args_
+
+    args = parse_arguments()
+
+    if args.silent:
+        np.seterr(all='ignore')
+
+    model = ModelCPU(args.model, args.cpu, args.chunk, args.compression)
+    if args.psf:
+        model.convolve(args.psf)
+    # send models to shared memory
+    model.to_shared_mem()
+    # fit in parallel
+    model.fit_dir(args.input, args.output)

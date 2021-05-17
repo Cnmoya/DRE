@@ -1,4 +1,4 @@
-import ModelsIO as MIO
+from DRE.core import ModelsIO as MIO
 import numpy as np
 from h5py import File
 

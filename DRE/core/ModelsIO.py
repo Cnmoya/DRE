@@ -88,9 +88,12 @@ class ModelsCube:
         mosaic_fits.writeto(output_file, overwrite=True)
 
     def get_parameters(self, chi_cube):
-        e, t, r = np.unravel_index(np.argmin(chi_cube[1].data), shape=(10, 13, 21))
-        min_chi = np.min(chi_cube)
-        return self.log_r[r], self.ax_ratio[e], self.angle[t], min_chi
+        try:
+            e, t, r = np.unravel_index(np.nanargmin(chi_cube[1].data), shape=(10, 13, 21))
+            min_chi = np.nanmin(chi_cube)
+            return self.log_r[r], self.ax_ratio[e], self.angle[t], min_chi
+        except ValueError:
+            return 4 * (np.nan,)
 
     def pond_rad_3d(self, chi_cube):
         r_pond = np.sum((10 ** self.log_r) / chi_cube)

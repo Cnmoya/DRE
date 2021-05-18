@@ -48,7 +48,6 @@ class Result:
                 logr_pond, logr_var = self.model.pond_rad_3d(chi_cube)
                 self.table['LOGR_POND'][i] = logr_pond
                 self.table['LOGR_VAR'][i] = logr_var
-        self.table.mask = np.isnan(self.table['CHI'])
 
     def visualize_detections(self):
         pass

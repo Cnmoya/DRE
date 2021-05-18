@@ -40,7 +40,7 @@ class ModelCPU(ModelsCube):
         scale = flux_data / flux_models
         scaled_models = scale[:, :, :, np.newaxis, np.newaxis] * self.models
         resta = data - scaled_models
-        residuo = (resta ** 2) / np.sqrt(np.abs(scaled_models) + noise ** 2)
+        residuo = (resta ** 2) / (scaled_models + noise ** 2)
         chi = np.einsum("ijkxy,xy->ijk", residuo, segment)
 
         area = segment.sum()

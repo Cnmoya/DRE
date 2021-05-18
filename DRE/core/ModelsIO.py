@@ -12,6 +12,10 @@ class ModelsCube:
         self.header = None
         self.original_shape = None
 
+        self.log_r = None
+        self.angle = None
+        self.ax_ratio = None
+
         self.compression = compression_types[out_compression]
 
         if models_file is None:
@@ -27,18 +31,6 @@ class ModelsCube:
     def shape(self):
         return self.models.shape
 
-    @property
-    def log_r(self):
-        return [self.header["LOGH0"] + i * self.header["DLOGH"] for i in range(self.header["NLOGH"])]
-
-    @property
-    def angle(self):
-        return [self.header["POSANG0"] + i * self.header["DPOSANG"] for i in range(self.header["NPOSANG"])]
-
-    @property
-    def ax_ratio(self):
-        return [self.header["AXRAT0"] + i * self.header["DAXRAT"] for i in range(self.header["NAXRAT"])]
-
     def load_models(self, models_file):
         cube = fits.getdata(models_file).astype('float')
         self.original_shape = cube.shape
@@ -46,6 +38,9 @@ class ModelsCube:
         cube = cube.swapaxes(2, 3)
         self.models = cube
         self.header = fits.getheader(models_file)
+        self.log_r = np.arange(self.header["NLOGH"]) * self.header["DLOGH"] + self.header["LOGH0"]
+        self.angle = np.arange(self.header["NPOSANG"]) * self.header["DPOSANG"] + self.header["POSANG0"]
+        self.ax_ratio = np.arange(self.header["NAXRAT"]) * self.header["DAXRAT"] + self.header["AXRAT0"]
 
     def save_model(self, output_file):
         cube = self.models.swapaxes(2, 3)
@@ -69,7 +64,7 @@ class ModelsCube:
             os.mkdir(output_dir)
         for i, filename in enumerate(files):
             input_file = f"{input_dir}/{filename}"
-            name, _ = os.path.basename(filename).replace('_cuts.h5', '')
+            name = os.path.basename(filename).replace('_cuts.h5', '')
             output_file = f"{output_dir}/{name}_chi.h5"
             if os.path.isfile(output_file):
                 os.remove(output_file)
@@ -98,20 +93,11 @@ class ModelsCube:
         return self.log_r[r], self.ax_ratio[e], self.angle[t], min_chi
 
     def pond_rad_3d(self, chi_cube):
-        sqrt_chi = np.sqrt(chi_cube)
-        r_weight = 0
-        for e in range(chi_cube.shape[0]):
-            for t in range(chi_cube.shape[1]):
-                for r in range(chi_cube.shape[2]):
-                    r_weight += (10 ** self.log_r[r]) / sqrt_chi[e, t, r]
+        r_pond = np.sum((10 ** self.log_r) / chi_cube)
+        r_pond = r_pond / np.sum(1. / chi_cube)
+        log_r_pond = np.log10(r_pond)
 
-        log_r_pond = np.log10(r_weight / np.sum(1. / sqrt_chi))
-
-        log_r_var = 0
-        for e in range(10):
-            for t in range(13):
-                for r in range(21):
-                    log_r_var += ((self.log_r[r] - log_r_pond) ** 2) / (chi_cube[e, t, r])
-
-        log_r_var = log_r_var / np.sum(1. / log_r_pond)
+        r_var = np.sum(((10 ** self.log_r - r_pond) ** 2) / chi_cube)
+        r_var = r_var / np.sum(1. / chi_cube)
+        log_r_var = np.log10(r_var)
         return log_r_pond, log_r_var

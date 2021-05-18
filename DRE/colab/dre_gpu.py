@@ -16,9 +16,9 @@ class ModelGPU(ModelsCube):
         self.to_gpu()
 
         # optimized einstein sum contractions for GPU
-        self.cube_x_image = contract_expression("ijkxy,xy->ijk", (10, 13, 21, 128, 128), (128, 128))
-        self.image_x_image = contract_expression("xy,xy->", (128, 128), (128, 128))
-        self.scale_x_model = contract_expression("ijk,ijkxy->ijkxy", (10, 13, 21), (10, 13, 21, 128, 128))
+        self.contract_cube_x_image = contract_expression("ijkxy,xy->ijk", (10, 13, 21, 128, 128), (128, 128))
+        self.contract_image_x_image = contract_expression("xy,xy->", (128, 128), (128, 128))
+        self.contract_scale_x_model = contract_expression("ijk,ijkxy->ijkxy", (10, 13, 21), (10, 13, 21, 128, 128))
 
     def to_gpu(self):
         self.models = cp.array(self.models)
@@ -44,13 +44,13 @@ class ModelGPU(ModelsCube):
         segment = cp.array(segment)
         noise = cp.array(noise)
 
-        flux_models = self.cube_x_image(self.models, segment, backend='cupy')
-        flux_data = self.image_x_image(data, segment, backend='cupy')
+        flux_models = self.contract_cube_x_image(self.models, segment, backend='cupy')
+        flux_data = self.contract_image_x_image(data, segment, backend='cupy')
         scale = flux_data / flux_models
-        scaled_models = self.scale_x_model(scale, self.models, backend='cupy')
+        scaled_models = self.contract_scale_x_model(scale, self.models, backend='cupy')
         diff = data - scaled_models
-        residual = (diff ** 2) / cp.sqrt(cp.abs(scaled_models) + noise ** 2)
-        chi = self.cube_x_image(residual, segment, backend='cupy')
+        residual = (diff ** 2) / (scaled_models + noise ** 2)
+        chi = self.contract_cube_x_image(residual, segment, backend='cupy')
 
         area = segment.sum()
         chi = chi / area

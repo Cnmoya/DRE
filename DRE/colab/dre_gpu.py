@@ -11,6 +11,7 @@ from .convolve_gpu import gpu_fftconvolve
 class ModelGPU(ModelsCube):
     def __init__(self, models_file=None, out_compression='none'):
         super().__init__(models_file, out_compression)
+        self.convolved = False
 
         self.to_gpu()
 

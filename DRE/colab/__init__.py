@@ -1,9 +1,4 @@
-import cupy
-import sys
+from .results import Result, Results
+from .dre_gpu import ModelsCube
 
-# check if GPU exists
-try:
-    cupy.cuda.runtime.getDevice()
-except cupy.cuda.runtime.CUDARuntimeError:
-    print("cudaErrorNoDevice: no CUDA-capable device is detected")
-    sys.exit(1)
+__all__ = ["Result", "Results", "ModelsCube"]

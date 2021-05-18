@@ -1,5 +1,4 @@
 # files/dirs to ignore
-run_dre.py
 scripts/sex_dre.sh
 scripts/sex_dre.py
 scripts/sex_source/

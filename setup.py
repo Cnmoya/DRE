@@ -23,7 +23,8 @@ setuptools.setup(
         'Topic :: Scientific/Engineering :: Astrophysics',
         'Topic :: Scientific/Engineering :: Physics',
     ],
+    package_dir={"": "DRE"},
     packages=setuptools.find_packages(where="DRE"),
     python_requires=">=3.6",
-    install_requires=['numpy', 'scipy', 'astropy', 'photutils'],
+    install_requires=['numpy', 'scipy', 'astropy'],
 )

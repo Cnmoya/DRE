@@ -19,6 +19,9 @@ class Result:
     def __getitem__(self, item):
         return self.table.__getitem__(item)
 
+    def __repr__(self):
+        return self.table.__repr__()
+
     def load_file(self, chi_file):
         with File(chi_file, 'r') as chi_h5f:
             self.name = os.path.basename(chi_file).replace('_chi.h5', '')
@@ -72,7 +75,7 @@ class Result:
         plt.show()
 
     def join_catalog(self, cat_table):
-        self.table = join(self.table, cat_table, join_type='inner')
+        self.table = join(self.table, QTable(cat_table), join_type='inner')
 
 
 class Results:

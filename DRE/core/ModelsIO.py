@@ -91,7 +91,7 @@ class ModelsCube:
         try:
             e, t, r = np.unravel_index(np.nanargmin(chi_cube[1].data), shape=(10, 13, 21))
             min_chi = np.nanmin(chi_cube)
-            return self.log_r[r], self.ax_ratio[e], self.angle[t], min_chi
+            return self.ax_ratio[e], self.angle[t], self.log_r[r], min_chi
         except ValueError:
             return 4 * (np.nan,)
 

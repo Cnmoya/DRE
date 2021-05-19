@@ -122,16 +122,17 @@ class Result:
 
 
 class Results:
-    def __init__(self, model):
+    def __init__(self, model, chi_dir='Chi', images_dir='Tile', cuts_dir='Cuts', catalogs_dir='Sextracted'):
         self.model = model
         self.results = []
         self.total_results = Result(self.model)
         self.total_results.name = "Total Results"
+        self.load_results(chi_dir, images_dir, cuts_dir, catalogs_dir)
 
     def __getitem__(self, item):
         return self.results[item]
 
-    def load_results(self, chi_dir='Chi', images_dir='Tiles', cuts_dir='Cuts', catalogs_dir='Sextracted'):
+    def load_results(self, chi_dir, images_dir, cuts_dir, catalogs_dir):
         _, _, files = next(os.walk(chi_dir))
         for chi_file in files:
             result = Result(self.model)

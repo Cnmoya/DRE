@@ -77,7 +77,7 @@ class ModelsCube:
             min_chi = np.nanmin(chi_cube)
             return self.ax_ratio[e], self.angle[t], self.log_r[r], min_chi, (e, t, r)
         except ValueError:
-            return 4 * (np.nan,)
+            return 4 * (np.nan,) + (3 * (np.nan,),)
 
     def pond_rad_3d(self, chi_cube):
         r_pond = np.sum((10 ** self.log_r) / chi_cube)

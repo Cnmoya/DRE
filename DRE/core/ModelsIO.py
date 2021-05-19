@@ -57,7 +57,7 @@ class ModelsCube:
     def fit_file(self, input_file, output_file, progress_status=''):
         pass
 
-    def fit_dir(self, input_dir, output_dir):
+    def fit_dir(self, input_dir='Cuts', output_dir='Chi'):
         # list with input files in input_dir
         _, _, files = next(os.walk(input_dir))
         if not os.path.exists(output_dir):
@@ -72,7 +72,7 @@ class ModelsCube:
             self.fit_file(input_file, output_file, progress_status=f"({i + 1}/{len(files)})")
 
     def get_parameters(self, chi_cube):
-        e, t, r = np.unravel_index(np.nanargmin(chi_cube[1].data), shape=(10, 13, 21))
+        e, t, r = np.unravel_index(np.nanargmin(chi_cube), chi_cube.shape)
         min_chi = np.nanmin(chi_cube)
         return self.ax_ratio[e], self.angle[t], self.log_r[r], min_chi, (e, t, r)
 

@@ -63,9 +63,10 @@ class ModelGPU(ModelsCube):
             with File(input_file, 'r') as input_h5f:
                 data = input_h5f[name]
                 chi = self.dre_fit(data['obj'][:], data['seg'][:], data['rms'][:])
-            with File(output_file, 'a') as output_h5f:
-                output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),
-                                          dtype='float32', **self.compression)
+            if not cp.isnan(chi).all():
+                with File(output_file, 'a') as output_h5f:
+                    output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),
+                                              dtype='float32', **self.compression)
 
     def visualize_model(self, ratio_idx, figsize=(20, 20), vmin=0, vmax=100, cmap='gray'):
         plt.figure(figsize=figsize)

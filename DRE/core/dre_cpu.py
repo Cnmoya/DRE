@@ -73,9 +73,10 @@ class ModelCPU(ModelsCube):
     def get_output(self, n_tasks, output_file, progress_status):
         for i in range(n_tasks):
             name, chi = self.output_queue.get()
-            with File(output_file, 'a') as output_h5f:
-                output_h5f.create_dataset(f'{name}', data=chi,
-                                          dtype='float32', **self.compression)
+            if not np.isnan(chi).all():
+                with File(output_file, 'a') as output_h5f:
+                    output_h5f.create_dataset(f'{name}', data=chi,
+                                              dtype='float32', **self.compression)
             progress(i+1, n_tasks, progress_status)
 
     def start_processes(self, names, input_file, output_file, progress_status):

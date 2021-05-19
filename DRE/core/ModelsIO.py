@@ -72,12 +72,10 @@ class ModelsCube:
             self.fit_file(input_file, output_file, progress_status=f"({i + 1}/{len(files)})")
 
     def get_parameters(self, chi_cube):
-        try:
-            e, t, r = np.unravel_index(np.nanargmin(chi_cube[1].data), shape=(10, 13, 21))
-            min_chi = np.nanmin(chi_cube)
-            return self.ax_ratio[e], self.angle[t], self.log_r[r], min_chi, (e, t, r)
-        except ValueError:
-            return 4 * (np.nan,) + (3 * (np.nan,),)
+        e, t, r = np.unravel_index(np.nanargmin(chi_cube[1].data), shape=(10, 13, 21))
+        min_chi = np.nanmin(chi_cube)
+        return self.ax_ratio[e], self.angle[t], self.log_r[r], min_chi, (e, t, r)
+
 
     def pond_rad_3d(self, chi_cube):
         r_pond = np.sum((10 ** self.log_r) / chi_cube)

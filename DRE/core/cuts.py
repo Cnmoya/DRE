@@ -36,7 +36,6 @@ class Cutter:
         cut = 0
         with File(out_name, 'w') as h5_file:
             for j, row in enumerate(cats):
-                cat_digits = len(str(len(cats)))
                 ext_number = row['EXT_NUMBER'] if 'EXT_NUMBER' in row else 0
                 if self.condition(row, data[ext_number].header):
                     # este es para filtrar los nan (ocultos por sextractor)
@@ -55,7 +54,7 @@ class Cutter:
                         mini_obj = self.cut_object(obj, row, ext_number, size=12)
                         xo, yo = centroid_1dg(mini_obj)
                         x_shift, y_shift = 5.5 - xo, 5.5 - yo
-                        h5_group = h5_file.create_group(f"{ext_number:02d}_{row['NUMBER']:0{cat_digits}d}")
+                        h5_group = h5_file.create_group(f"{ext_number}_{row['NUMBER']}")
                         h5_group.create_dataset('obj', data=shift(obj_cut, (y_shift, x_shift)),
                                                 dtype='float32', **self.compression)
                         h5_group.create_dataset('seg', data=shift(seg_cut, (y_shift, x_shift)),

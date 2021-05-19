@@ -71,27 +71,11 @@ class ModelsCube:
             # fit all cuts in each file
             self.fit_file(input_file, output_file, progress_status=f"({i + 1}/{len(files)})")
 
-    # noinspection PyTypeChecker
-    def make_mosaic_h5(self, data, segment, index, output_file):
-        e, t, r = index
-        model = self.models[e, t, r]
-        flux_model = np.einsum("xy,xy", model, segment)
-        flux_data = np.einsum("xy,xy", data, segment)
-        scaled_model = (flux_data / flux_model) * model
-        mosaic = np.zeros((4, 128, 128))
-        mosaic[0] = data
-        mosaic[1] = segment * (flux_data / segment.sum())
-        mosaic[2] = scaled_model
-        mosaic[3] = data - scaled_model
-
-        mosaic_fits = fits.ImageHDU(data=mosaic.reshape(128 * 4, 128).T)
-        mosaic_fits.writeto(output_file, overwrite=True)
-
     def get_parameters(self, chi_cube):
         try:
             e, t, r = np.unravel_index(np.nanargmin(chi_cube[1].data), shape=(10, 13, 21))
             min_chi = np.nanmin(chi_cube)
-            return self.ax_ratio[e], self.angle[t], self.log_r[r], min_chi
+            return self.ax_ratio[e], self.angle[t], self.log_r[r], min_chi, (e, t, r)
         except ValueError:
             return 4 * (np.nan,)
 

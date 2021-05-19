@@ -65,9 +65,9 @@ class Result:
                 self.table['AX_RATIO'][i] = ratio
                 self.table['ANGLE'][i] = angle * u.deg
                 self.table['CHI'][i] = chi
-                self.table['R_IDX'] = r_idx
-                self.table['E_IDX'] = e_idx
-                self.table['T_IDX'] = t_idx
+                self.table['R_IDX'][i] = r_idx
+                self.table['E_IDX'][i] = e_idx
+                self.table['T_IDX'][i] = t_idx
 
                 logr_pond, logr_var = self.model.pond_rad_3d(chi_cube)
                 self.table['LOGR_POND'][i] = logr_pond

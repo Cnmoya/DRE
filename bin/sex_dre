@@ -1,0 +1,59 @@
+#!/bin/env python
+
+import os
+import argparse
+from subprocess import run
+
+
+def run_sextractor(input_file, args):
+    input_name = os.path.basename(input_file).replace('.fits', '')
+    if args.subdir:
+        outdir = f"{args.output}/{input_name}"
+    else:
+        outdir = args.output
+    os.makedirs(outdir, exist_ok=True)
+    basename = f"{outdir}/{input_name}"
+
+    sex_config = dict()
+    sex_config['-c'] = args.config
+    if args.cat_format == 'fits':
+        sex_config["-CATALOG_NAME"] = f"{basename}_cat.fits"
+        sex_config["-CATALOG_TYPE"] = "FITS_LDAC"
+    elif args.cat_format == 'table':
+        sex_config["-CATALOG_NAME"] = f"{basename}_cat.cat"
+        sex_config["-CATALOG_TYPE"] = "ASCII_HEAD"
+    sex_config["-CHECKIMAGE_TYPE"] = "-BACKGROUND,BACKGROUND_RMS,SEGMENTATION"
+    sex_config["-CHECKIMAGE_NAME"] = f"{basename}_nb.fits,{basename}_rms.fits,{basename}_seg.fits"
+    options = [x for item in sex_config.items() for x in item]
+    command = ["sex"] + [input_file] + options
+    run(command)
+
+
+if __name__ == "__main__":
+
+    def parse_arguments():
+        parser = argparse.ArgumentParser()
+
+        parser.add_argument('-i', "--input", help="single fits image to sectract", type=str, default=None)
+        parser.add_argument('-t', "--tiles", help="directory with images to sextract", default="Tiles", type=str)
+        parser.add_argument('-o', "--output", help="root directory to sextracted data (def: Sextracted)",
+                            type=str, default="Sextracted")
+        parser.add_argument('-c', "--config", help="Sextractor configuration file (def: default.sex)",
+                            type=str, default="default.sex")
+        parser.add_argument('--cat-format', help="oputput catalog format (def: fits)",
+                            choices=['table', 'fits'], default='fits')
+        parser.add_argument('--subdir', help="make a subdirectory for each image", action='store_true')
+
+        args = parser.parse_args()
+
+        return args
+
+    args_ = parse_arguments()
+
+    if args_.input:
+        run_sextractor(args_.input, args_)
+
+    else:
+        _, _, files = next(os.walk(args_.tiles))
+        for file in sorted(files):
+            run_sextractor(f"{args_.tiles}/{file}", args_)

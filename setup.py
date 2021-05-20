@@ -29,5 +29,5 @@ setuptools.setup(
     package_data={
         'DRE': ['models/*'],
     },
-    scripts=['bin/dre', 'bin/make_cuts'],
+    scripts=['bin/dre', 'bin/make_cuts', 'bin/sex_dre'],
 )

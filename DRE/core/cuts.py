@@ -1,4 +1,5 @@
 from astropy.io import fits, ascii
+from astropy.table import Table
 from astropy.nddata import Cutout2D
 from scipy.ndimage import shift
 from photutils.centroids import centroid_1dg
@@ -7,6 +8,7 @@ import numpy as np
 import os
 from DRE.misc.progress_bar import progress
 from DRE.misc.h5py_compression import compression_types
+from DRE.misc.read_catalog import cat_to_table
 
 
 class Cutter:
@@ -32,11 +34,11 @@ class Cutter:
                         (cat_row["X_IMAGE"] - 1, cat_row["Y_IMAGE"] - 1),
                         size).data.copy()
 
-    def cut_image(self, cats, out_name, seg, obj, data, noise, progress_status):
+    def cut_image(self, cat, out_name, seg, obj, data, noise, progress_status):
         cut = 0
         with File(out_name, 'w') as h5_file:
-            for j, row in enumerate(cats):
-                ext_number = row['EXT_NUMBER'] if 'EXT_NUMBER' in row else 0
+            for j, row in enumerate(cat):
+                ext_number = row['EXT_NUMBER'] if 'EXT_NUMBER' in row.keys() else 0
                 if self.condition(row, data[ext_number].header):
                     # este es para filtrar los nan (ocultos por sextractor)
                     data_cut = self.cut_object(data, row, ext_number)
@@ -62,36 +64,37 @@ class Cutter:
                         h5_group.create_dataset('rms', data=shift(rms_cut, (y_shift, x_shift)),
                                                 dtype='float32', **self.compression)
 
-                        progress(j + 1, len(cats), progress_status)
+                        progress(j + 1, len(cat), progress_status)
                         cut += 1
         print(f"\n{progress_status}: {cut} cuts")
 
-    def cut_tiles(self, tile, sextracted, output):
-        _, _, files = next(os.walk(tile))
+    def cut_tiles(self, tiles='Tiles', sextracted='Sextracted', output='Cuts'):
+        _, _, files = next(os.walk(tiles))
         if not os.path.exists(output):
             os.mkdir(output)
-        for i, filename in enumerate(files):
+        for i, filename in enumerate(sorted(files)):
             name, _ = os.path.splitext(os.path.split(filename)[1])
-            basename = f"{sextracted}/{name}/{name}"
+            if os.path.isdir(f"{sextracted}/{name}"):
+                basename = f"{sextracted}/{name}/{name}"
+            else:
+                basename = f"{sextracted}/{name}"
 
             seg = fits.open(f"{basename}_seg.fits")
-            obj = fits.open(f"{basename}_obj_nb.fits")
+            obj = fits.open(f"{basename}_nb.fits")
             noise = fits.open(f"{basename}_rms.fits")
-            data = fits.open(f"{tile}/{name}.fits")
-            
-            if os.path.isfile(f"{basename}_cat.fits"):
-                cats = fits.open(f"{basename}_cat.fits")
-            elif os.path.isfile(f"{basename}_cat.cat"):
-                cats = ascii.read(f"{basename}_cat.cat", format='sextractor')
-            else:
-                raise ValueError("Can't find catalog in known format, "
-                                 "check that the filename is name_cat.cat or name_cat.fits")
+            data = fits.open(f"{tiles}/{name}.fits")
+            cat = cat_to_table(basename)
 
             out_name = f"{output}/{name}_cuts.h5"
             if os.path.isfile(out_name):
                 os.remove(out_name)
             progress_status = f"({i + 1}/{len(files)})"
             print(f"{progress_status}: {name}")
-            self.cut_image(cats, out_name,
+            self.cut_image(cat, out_name,
                            seg, obj, data, noise,
                            progress_status)
+            seg.close()
+            obj.close()
+            noise.close()
+            data.close()
+

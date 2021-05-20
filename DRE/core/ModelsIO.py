@@ -9,6 +9,7 @@ class ModelsCube:
     def __init__(self, models_file=None, out_compression='none'):
 
         self.models = None
+        self.convolved_models = None
         self.header = None
         self.original_shape = None
 
@@ -48,34 +49,34 @@ class ModelsCube:
         models_fits = fits.ImageHDU(data=cube)
         models_fits.writeto(output_file, overwrite=True)
 
-    def convolve(self, psf_file: str):
+    def convolve(self, psf_file: str, progress_status=''):
         pass
 
     def dre_fit(self, data, segment, noise):
         pass
 
-    def fit_file(self, input_file, output_file, progress_status=''):
+    def fit_file(self, input_file, output_file, psf, progress_status=''):
         pass
 
-    def fit_dir(self, input_dir='Cuts', output_dir='Chi'):
+    def fit_dir(self, input_dir='Cuts', output_dir='Chi', psf_dir='PSF'):
         # list with input files in input_dir
         _, _, files = next(os.walk(input_dir))
         if not os.path.exists(output_dir):
             os.mkdir(output_dir)
-        for i, filename in enumerate(files):
+        for i, filename in enumerate(sorted(files)):
             input_file = f"{input_dir}/{filename}"
             name = os.path.basename(filename).replace('_cuts.h5', '')
             output_file = f"{output_dir}/{name}_chi.h5"
+            psf = f"{psf_dir}/{name}_psf.h5"
             if os.path.isfile(output_file):
                 os.remove(output_file)
             # fit all cuts in each file
-            self.fit_file(input_file, output_file, progress_status=f"({i + 1}/{len(files)})")
+            self.fit_file(input_file, output_file, psf, progress_status=f"({i + 1}/{len(files)})")
 
     def get_parameters(self, chi_cube):
         e, t, r = np.unravel_index(np.nanargmin(chi_cube), chi_cube.shape)
         min_chi = np.nanmin(chi_cube)
         return self.ax_ratio[e], self.angle[t], self.log_r[r], min_chi, (e, t, r)
-
 
     def pond_rad_3d(self, chi_cube):
         r_pond = np.sum((10 ** self.log_r) / chi_cube)

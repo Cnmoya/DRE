@@ -7,6 +7,7 @@ import numpy as np
 import cupy as cp
 import matplotlib.pyplot as plt
 from astropy.visualization import quantity_support
+from DRE.misc.read_catalog import cat_to_table
 
 quantity_support()
 
@@ -142,7 +143,7 @@ class Result:
 
 
 class Results:
-    def __init__(self, model, chi_dir='Chi', images_dir='Tile', cuts_dir='Cuts', catalogs_dir='Sextracted'):
+    def __init__(self, model, chi_dir='Chi', images_dir='Tiles', cuts_dir='Cuts', catalogs_dir='Sextracted'):
         self.model = model
         self.results = []
         self.total_results = Result(self.model)
@@ -157,7 +158,7 @@ class Results:
 
     def load_results(self, chi_dir, images_dir, cuts_dir, catalogs_dir):
         _, _, files = next(os.walk(chi_dir))
-        for chi_file in files:
+        for chi_file in sorted(files):
             result = Result(self.model)
             result.load_file(f"{chi_dir}/{chi_file}")
             self.results.append(result)
@@ -179,12 +180,8 @@ class Results:
     def set_catalogs(self, catalogs_dir):
         for result in self.results:
             if os.path.isdir(f"{catalogs_dir}/{result.name}"):
-                cat_dir = f"{catalogs_dir}/{result.name}"
+                basename = f"{catalogs_dir}/{result.name}/{result.name}"
             else:
-                cat_dir = catalogs_dir
-            if os.path.isfile(f"{cat_dir}/{result.name}_cat.fits"):
-                cat = fits.open(f"{cat_dir}/{result.name}_cat.fits")
-                result.join_catalog(cat)
-            elif os.path.isfile(f"{cat_dir}/{result.name}_cat.cat"):
-                cat = ascii.read(f"{cat_dir}/{result.name}_cat.cat", format='sextractor')
-                result.join_catalog(cat)
+                basename = f"{catalogs_dir}/{result.name}"
+            cat = cat_to_table(basename)
+            result.join_catalog(cat)

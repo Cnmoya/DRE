@@ -2,7 +2,8 @@ import multiprocessing as mp
 from threading import Thread
 import ctypes
 import numpy as np
-from astropy.convolution import convolve_fft
+from scipy.signal import fftconvolve
+from functools import partial
 from h5py import File
 import time
 import datetime
@@ -17,28 +18,29 @@ class ModelCPU(ModelsCube):
         self.chunk_size = chunk_size
         self.n_cpu = n_cpu
 
+        self.conv_pool = mp.Pool(self.n_cpu)
         self.input_queue = mp.Queue()
         self.output_queue = mp.Queue()
         self.feed_thread = None
         self.output_thread = None
         self.processes = []
 
-    def convolve(self, psf_file):
-        print("Convolving...")
+    def convolve(self, psf_file, progress_status=''):
+        print(f"{progress_status}: Convolving...")
         start = time.time()
         with File(psf_file, 'r') as psf_h5f:
             psf = psf_h5f['psf'][:]
-        for e in range(self.models.shape[0]):
-            for t in range(self.models.shape[1]):
-                for r in range(self.models.shape[2]):
-                    self.models[e, t, r] = convolve_fft(self.models[e, t, r], psf)
-        print(f"Convolved! ({time.time() - start:2.2f}s)")
+        psf = psf[np.newaxis, np.newaxis, :]
+        convolve = partial(fftconvolve, in2=psf, mode='same', axes=(-2, -1))
+        self.convolved_models = np.array(list(self.conv_pool.map(convolve, self.models)))
+        self.to_shared_mem()
+        print(f"{progress_status}: Convolved! ({time.time() - start:2.2f}s)")
 
     def dre_fit(self, data, segment, noise):
-        flux_models = np.einsum("ijkxy,xy->ijk", self.models, segment)
+        flux_models = np.einsum("ijkxy,xy->ijk", self.convolved_models, segment)
         flux_data = np.einsum("xy,xy", data, segment)
         scale = flux_data / flux_models
-        scaled_models = scale[:, :, :, np.newaxis, np.newaxis] * self.models
+        scaled_models = scale[:, :, :, np.newaxis, np.newaxis] * self.convolved_models
         resta = data - scaled_models
         residuo = (resta ** 2) / (scaled_models + noise ** 2)
         chi = np.einsum("ijkxy,xy->ijk", residuo, segment)
@@ -48,12 +50,12 @@ class ModelCPU(ModelsCube):
         return chi
 
     def to_shared_mem(self):
-        shape = self.models.shape
+        shape = self.convolved_models.shape
         shared_array_base = mp.Array(ctypes.c_float, int(np.prod(shape)))
         shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
         shared_array = shared_array.reshape(shape)
-        shared_array[:] = self.models
-        self.models = shared_array
+        shared_array[:] = self.convolved_models
+        self.convolved_models = shared_array
 
     def cpu_worker(self, input_q, output_q):
         for name, data, segment, noise in iter(input_q.get, ('STOP', '', '', '')):
@@ -96,11 +98,14 @@ class ModelCPU(ModelsCube):
         self.feed_thread.join()
         self.output_thread.join()
 
-    def fit_file(self, input_file, output_file, progress_status=''):
+    def fit_file(self, input_file, output_file, psf, progress_status=''):
         start = time.time()
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
         print(f"{progress_status}: {input_file}\t{len(names)} objects")
+        # convolve with the psf
+        self.convolve(psf, progress_status)
+        # fit in parallel
         self.start_processes(names, input_file, output_file, progress_status)
         self.stop_processes()
         time_delta = time.time() - start

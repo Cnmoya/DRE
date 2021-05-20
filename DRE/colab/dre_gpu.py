@@ -48,7 +48,7 @@ class ModelGPU(ModelsCube):
         chi = chi / area
         return chi
 
-    def fit_file(self, input_file, output_file, psf, progress_status=''):
+    def fit_file(self, input_name, input_file, output_file, psf, progress_status=''):
         self.convolve(psf)
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())

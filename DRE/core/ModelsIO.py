@@ -55,14 +55,13 @@ class ModelsCube:
     def dre_fit(self, data, segment, noise):
         pass
 
-    def fit_file(self, input_file, output_file, psf, progress_status=''):
+    def fit_file(self, input_name, input_file, output_file, psf, progress_status=''):
         pass
 
     def fit_dir(self, input_dir='Cuts', output_dir='Chi', psf_dir='PSF'):
         # list with input files in input_dir
         _, _, files = next(os.walk(input_dir))
-        if not os.path.exists(output_dir):
-            os.mkdir(output_dir)
+        os.makedirs(output_dir, exist_ok=True)
         for i, filename in enumerate(sorted(files)):
             input_file = f"{input_dir}/{filename}"
             name = os.path.basename(filename).replace('_cuts.h5', '')
@@ -71,12 +70,7 @@ class ModelsCube:
             if os.path.isfile(output_file):
                 os.remove(output_file)
             # fit all cuts in each file
-            self.fit_file(input_file, output_file, psf, progress_status=f"({i + 1}/{len(files)})")
-
-    def get_parameters(self, chi_cube):
-        e, t, r = np.unravel_index(np.nanargmin(chi_cube), chi_cube.shape)
-        min_chi = np.nanmin(chi_cube)
-        return self.ax_ratio[e], self.angle[t], self.log_r[r], min_chi, (e, t, r)
+            self.fit_file(name, input_file, output_file, psf, progress_status=f"({i + 1}/{len(files)})")
 
     def pond_rad_3d(self, chi_cube):
         r_pond = np.sum((10 ** self.log_r) / chi_cube)
@@ -87,3 +81,26 @@ class ModelsCube:
         r_var = r_var / np.sum(1. / chi_cube)
         log_r_var = np.log10(r_var)
         return log_r_pond, log_r_var
+
+    def get_parameters(self, chi_cube):
+        e, t, r = np.unravel_index(np.nanargmin(chi_cube), chi_cube.shape)
+        min_chi = np.nanmin(chi_cube)
+        log_r_pond, log_r_var = self.pond_rad_3d(chi_cube)
+        parameters = {'R_IDX': r, 'E_IDX': e, 'T_IDX': t,
+                      'LOGR': self.log_r[r], 'AX_RATIO': self.ax_ratio[e], 'ANGLE': self.angle[t],
+                      'LOGR_POND': log_r_pond, 'LOGR_VAR': log_r_var,
+                      'CHI': min_chi}
+        return parameters
+
+    def make_mosaic(self, data, segment, model_index):
+        model = self.convolved_models[model_index]
+        flux_model = np.einsum("xy,xy", model, segment)
+        flux_data = np.einsum("xy,xy", data, segment)
+        scaled_model = (flux_data / flux_model) * model
+        mosaic = np.zeros((4, 128, 128))
+        mosaic[0] = data
+        mosaic[1] = segment * (flux_data / segment.sum())
+        mosaic[2] = scaled_model
+        mosaic[3] = data - scaled_model
+        mosaic = mosaic.reshape(128 * 4, 128).T
+        return mosaic

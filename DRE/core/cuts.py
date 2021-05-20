@@ -1,5 +1,4 @@
-from astropy.io import fits, ascii
-from astropy.table import Table
+from astropy.io import fits
 from astropy.nddata import Cutout2D
 from scipy.ndimage import shift
 from photutils.centroids import centroid_1dg
@@ -70,8 +69,7 @@ class Cutter:
 
     def cut_tiles(self, tiles='Tiles', sextracted='Sextracted', output='Cuts'):
         _, _, files = next(os.walk(tiles))
-        if not os.path.exists(output):
-            os.mkdir(output)
+        os.makedirs(output, exist_ok=True)
         for i, filename in enumerate(sorted(files)):
             name, _ = os.path.splitext(os.path.split(filename)[1])
             if os.path.isdir(f"{sextracted}/{name}"):

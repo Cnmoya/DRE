@@ -11,10 +11,11 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser()
 
         parser.add_argument("-m", "--model", help="models cube file", type=str, default=None)
-        parser.add_argument("--psf", help="directory with PSF's (def: PSF)", type=str, default='PSF')
+        parser.add_argument("--psf", help="directory with PSF's (def: PSF)", type=str, default="PSF")
         parser.add_argument("-i", "--input", help="directory with cuts (def: Cuts)",
                             default="Cuts", type=str)
         parser.add_argument("-o", "--output", help="output directory (def: Chi)", type=str, default="Chi")
+        parser.add_argument("--mosaics", help="generate mosaics files for visualization", action="store_true")
         parser.add_argument("--cpu", help="Number of cpu's to use", type=int, default=1)
         parser.add_argument("--chunk", type=int, default=100)
         parser.add_argument("--compression", help="compresion level for the h5 output file,"

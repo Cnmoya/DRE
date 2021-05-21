@@ -69,21 +69,34 @@ class Result:
     def hist(self, key=None, **kwargs):
         if key:
             plt.hist(self.table[key], **kwargs)
-            plt.xlabel(key.lower(), fontsize=12)
+            plt.xlabel(key.lower(), fontsize=14)
             plt.show()
         else:
             plt.figure(figsize=(8, 8))
-            for i, key in enumerate(['LOGR', 'LOGR_POND', 'AX_RATIO', 'ANGLE']):
-                plt.subplot(2, 2, i + 1)
+            for i, (key, label) in enumerate([('LOGR', r'$Log_{10}R$'), ('LOGR_CHI', r'$Log_{10}R_{\chi}$'),
+                                              ('AX_RATIO', 'a/b'), ('ANGLE', r'$\theta$')]):
+                plt.subplot(2, 2, 1)
                 plt.hist(self.table[key], **kwargs)
-                plt.xlabel(key.lower(), fontsize=12)
+                plt.xlabel(label, fontsize=14)
             plt.show()
 
-    def plot(self, x_key, y_key):
-        plt.scatter(self.table[x_key], self.table[y_key])
-        plt.xlabel(x_key.lower(), fontsize=12)
-        plt.xlabel(y_key.lower(), fontsize=12)
-        plt.show()
+    def plot(self, x_key=None, y_key=None, s=5, **kwargs):
+        if x_key is not None and y_key is not None:
+            plt.scatter(self.table[x_key], self.table[y_key], s=s, **kwargs)
+            plt.xlabel(x_key.lower(), fontsize=14)
+            plt.ylabel(y_key.lower(), fontsize=14)
+            plt.show()
+        else:
+            plt.figure(figsize=(8, 4))
+            plt.subplot(2, 1, 1)
+            plt.scatter(self.table['LOGR_CHI'], self.table['LOGR_CHI_VAR'])
+            plt.xlabel(r'$Log_{10}R_{\chi}$')
+            plt.ylabel(r'$\Delta^2 R_{\chi}$')
+            plt.subplot(2, 1, 1)
+            plt.scatter(self.table['LOGR_VAR'], self.table['LOGR_CHI_VAR'])
+            plt.xlabel(r'$\Delta^2 R$')
+            plt.ylabel(r'$\Delta^2 R_{\chi}$')
+            plt.show()
 
     def join_catalog(self, cat_table):
         self.table = join(self.table, QTable(cat_table), join_type='inner')

@@ -2,8 +2,8 @@ from astropy.io import fits
 from astropy.table import Table
 
 
-def cat_to_table(basename):
-    cat_fits = fits.open(f"{basename}_cat.fits")
+def cat_to_table(filename):
+    cat_fits = fits.open(filename)
     data_idx = 1
     for i in range(len(cat_fits)):
         if cat_fits[i].name == 'LDAC_OBJECTS':

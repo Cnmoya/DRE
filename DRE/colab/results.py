@@ -1,11 +1,11 @@
 from h5py import File
 from astropy.table import QTable, join, vstack
 from astropy.io import fits
-import os
-import numpy as np
 import matplotlib.pyplot as plt
 from astropy.visualization import quantity_support
 from DRE.misc.read_catalog import cat_to_table
+from collections import defaultdict
+import os
 
 quantity_support()
 
@@ -43,42 +43,19 @@ class Result:
         self.table = cat_to_table(summary)
 
     def load_chi(self, chi_file):
+        parameters = defaultdict(list)
         with File(chi_file, 'r') as chi_h5f:
             self.name = os.path.basename(chi_file).replace('_chi.h5', '')
-
             names = list(chi_h5f.keys())
-
-            self.table['ROW'] = np.arange(len(names), dtype='int')
-            self.table['EXT_NUMBER'] = np.zeros(len(names), dtype='int')
-            self.table['NUMBER'] = np.zeros(len(names), dtype='int')
-            self.table['R_IDX'] = np.zeros(len(names), dtype='int')
-            self.table['E_IDX'] = np.zeros(len(names), dtype='int')
-            self.table['T_IDX'] = np.zeros(len(names), dtype='int')
-            self.table['LOGR'] = np.zeros(len(names), dtype='float')
-            self.table['LOGR_POND'] = np.zeros(len(names), dtype='float')
-            self.table['LOGR_VAR'] = np.zeros(len(names), dtype='float')
-            self.table['AX_RATIO'] = np.zeros(len(names), dtype='float')
-            self.table['ANGLE'] = np.zeros(len(names), dtype='float')
-            self.table['CHI'] = np.zeros(len(names), dtype='float')
-
             for i, name in enumerate(names):
                 ext, numb = name.split('_')
-                self.table['EXT_NUMBER'][i] = int(ext)
-                self.table['NUMBER'][i] = int(numb)
+                parameters['EXT_NUMBER'].append(int(ext))
+                parameters['NUMBER'].append(int(numb))
 
                 chi_cube = chi_h5f[name][:]
-                ratio, angle, logr, chi, (e_idx, t_idx, r_idx) = self.model.get_parameters(chi_cube)
-                self.table['LOGR'][i] = logr
-                self.table['AX_RATIO'][i] = ratio
-                self.table['ANGLE'][i] = angle
-                self.table['CHI'][i] = chi
-                self.table['R_IDX'][i] = r_idx
-                self.table['E_IDX'][i] = e_idx
-                self.table['T_IDX'][i] = t_idx
-
-                logr_pond, logr_var = self.model.pond_rad_3d(chi_cube)
-                self.table['LOGR_POND'][i] = logr_pond
-                self.table['LOGR_VAR'][i] = logr_var
+                params = self.model.get_parameters(chi_cube)
+                for key, value in params.items():
+                    parameters[key].append(value)
 
     def visualize_detections(self):
         pass
@@ -151,6 +128,10 @@ class Results:
 
     def __len__(self):
         return len(self.results)
+
+    def save(self):
+        for result in self.results:
+            result.save()
 
     def load_results(self, chi_dir, images_dir, cuts_dir, psf_dir, catalogs_dir):
         if os.path.isdir(self.output_dir):

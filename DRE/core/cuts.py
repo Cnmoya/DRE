@@ -81,7 +81,7 @@ class Cutter:
             obj = fits.open(f"{basename}_nb.fits")
             noise = fits.open(f"{basename}_rms.fits")
             data = fits.open(f"{tiles}/{name}.fits")
-            cat = cat_to_table(basename)
+            cat = cat_to_table(f"{basename}_cat.fits")
 
             out_name = f"{output}/{name}_cuts.h5"
             if os.path.isfile(out_name):

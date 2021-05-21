@@ -1,3 +1,4 @@
+import numpy as np
 from h5py import File
 from astropy.table import QTable, join, vstack
 from astropy.io import fits
@@ -49,6 +50,7 @@ class Result:
         with File(chi_file, 'r') as chi_h5f:
             self.name = os.path.basename(chi_file).replace('_chi.h5', '')
             names = list(chi_h5f.keys())
+            parameters['ROW'] = list(range(len(names)))
             for i, name in enumerate(names):
                 ext, numb = name.split('_')
                 parameters['EXT_NUMBER'].append(int(ext))

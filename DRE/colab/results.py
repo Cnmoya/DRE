@@ -95,7 +95,7 @@ class Result:
         if self.cuts:
             row = self.row(i)
             cat_number, ext_number = row['NUMBER', 'EXT_NUMBER']
-            model_idx = row['E_IDX', 'T_IDX', 'R_IDX']
+            e, t, r = row['E_IDX', 'T_IDX', 'R_IDX']
 
             with File(f"{self.cuts}/{self.name}_cuts.h5", 'r') as cuts_h5f:
                 cuts = cuts_h5f[f'{ext_number}_{cat_number}']
@@ -103,7 +103,7 @@ class Result:
                 segment = cuts['seg'][:]
 
             self.model.convolve(self.psf)
-            mosaic = self.model.make_mosaic(data, segment, model_idx)
+            mosaic = self.model.make_mosaic(data, segment, (e, t, r))
 
             if save:
                 os.makedirs(mosaics_dir, exist_ok=True)

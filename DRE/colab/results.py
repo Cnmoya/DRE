@@ -75,7 +75,7 @@ class Result:
             plt.figure(figsize=(8, 8))
             for i, (key, label) in enumerate([('LOGR', r'$Log_{10}R$'), ('LOGR_CHI', r'$Log_{10}R_{\chi}$'),
                                               ('AX_RATIO', 'a/b'), ('ANGLE', r'$\theta$')]):
-                plt.subplot(2, 2, 1)
+                plt.subplot(2, 2, i + 1)
                 plt.hist(self.table[key], **kwargs)
                 plt.xlabel(label, fontsize=14)
             plt.show()
@@ -92,7 +92,7 @@ class Result:
             plt.scatter(self.table['LOGR_CHI'], self.table['LOGR_CHI_VAR'])
             plt.xlabel(r'$Log_{10}R_{\chi}$')
             plt.ylabel(r'$\Delta^2 R_{\chi}$')
-            plt.subplot(2, 1, 1)
+            plt.subplot(2, 1, 2)
             plt.scatter(self.table['LOGR_VAR'], self.table['LOGR_CHI_VAR'])
             plt.xlabel(r'$\Delta^2 R$')
             plt.ylabel(r'$\Delta^2 R_{\chi}$')

@@ -60,6 +60,7 @@ class Result:
                 params = self.model.get_parameters(chi_cube)
                 for key, value in params.items():
                     parameters[key].append(value)
+        self.table = QTable(parameters)
 
     def visualize_detections(self):
         pass

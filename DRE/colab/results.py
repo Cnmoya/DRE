@@ -88,12 +88,12 @@ class Result:
             plt.show()
         else:
             plt.figure(figsize=(8, 4))
-            plt.subplot(2, 1, 1)
-            plt.scatter(self.table['LOGR_CHI'], self.table['LOGR_CHI_VAR'])
+            plt.subplot(1, 2, 1)
+            plt.scatter(self.table['LOGR_CHI'], self.table['LOGR_CHI_VAR'], s=s, **kwargs)
             plt.xlabel(r'$Log_{10}R_{\chi}$')
             plt.ylabel(r'$\Delta^2 R_{\chi}$')
-            plt.subplot(2, 1, 2)
-            plt.scatter(self.table['LOGR_VAR'], self.table['LOGR_CHI_VAR'])
+            plt.subplot(1, 2, 2)
+            plt.scatter(self.table['LOGR_VAR'], self.table['LOGR_CHI_VAR'], s=s, **kwargs)
             plt.xlabel(r'$\Delta^2 R$')
             plt.ylabel(r'$\Delta^2 R_{\chi}$')
             plt.show()
@@ -197,3 +197,9 @@ class Results:
                 cat_file = f"{catalogs_dir}/{result.name}_cat.fits"
             cat = cat_to_table(cat_file)
             result.join_catalog(cat)
+
+    def hist(self, key=None, **kwargs):
+        self.total_results.hist(key, **kwargs)
+
+    def plot(self, x_key=None, y_key=None, s=5, **kwargs):
+        self.total_results.plot(x_key, y_key, s, **kwargs)

@@ -11,10 +11,10 @@ class Summary:
         self.row_idx = 0
 
     def append(self, params):
+        self.parameters['ROW'].append(self.row_idx)
+        self.row_idx += 1
         for key, value in params.items():
-            self.parameters['ROW'].append(self.row_idx)
             self.parameters[key].append(value)
-            self.row_idx += 1
 
     def save(self):
         os.makedirs('Summary', exist_ok=True)

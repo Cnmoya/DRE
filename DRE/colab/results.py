@@ -84,6 +84,8 @@ class Result:
         plt.show()
 
     def join_catalog(self, cat_table):
+        print(self.table.colnames)
+        print(cat_table.colnames)
         self.table = join(self.table, QTable(cat_table), join_type='inner')
         self.table.add_index('ROW')
         self.table.add_index('EXT_NUMBER')

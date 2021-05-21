@@ -87,7 +87,7 @@ class Result:
             plt.ylabel(y_key.lower(), fontsize=14)
             plt.show()
         else:
-            plt.figure(figsize=(8, 4))
+            plt.figure(figsize=(12, 6))
             plt.subplot(1, 2, 1)
             plt.scatter(self.table['LOGR_CHI'], self.table['LOGR_CHI_VAR'], s=s, **kwargs)
             plt.xlabel(r'$Log_{10}R_{\chi}$', fontsize=14)
@@ -96,6 +96,7 @@ class Result:
             plt.scatter(self.table['LOGR_VAR'], self.table['LOGR_CHI_VAR'], s=s, **kwargs)
             plt.xlabel(r'$\Delta^2 R$', fontsize=14)
             plt.ylabel(r'$\Delta^2 R_{\chi}$', fontsize=14)
+            plt.tight_layout()
             plt.show()
 
     def join_catalog(self, cat_table):

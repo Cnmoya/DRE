@@ -40,9 +40,11 @@ class Result:
         self.table.write(f"{self.output_dir}/{self.name}_tab.fits", overwrite=True)
 
     def load_summary(self, summary):
+        self.name = os.path.basename(summary).replace('_tab.fits', '')
         self.table = cat_to_table(summary)
 
     def load_chi(self, chi_file):
+        self.name = os.path.basename(chi_file).replace('_chi.h5', '')
         parameters = defaultdict(list)
         with File(chi_file, 'r') as chi_h5f:
             self.name = os.path.basename(chi_file).replace('_chi.h5', '')
@@ -135,12 +137,14 @@ class Results:
 
     def load_results(self, chi_dir, images_dir, cuts_dir, psf_dir, catalogs_dir, recompute):
         if os.path.isdir(self.output_dir) and not recompute:
+            print(f"loading results from {self.output_dir}")
             _, _, files = next(os.walk(self.output_dir))
             for summary_file in sorted(files):
                 result = Result(self.model, self.output_dir)
                 result.load_summary(f"{self.output_dir}/{summary_file}")
                 self.results.append(result)
         else:
+            print(f"loading results from {chi_dir}")
             _, _, files = next(os.walk(chi_dir))
             for chi_file in sorted(files):
                 result = Result(self.model, self.output_dir)

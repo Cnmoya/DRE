@@ -104,7 +104,7 @@ class Result:
                 segment = cuts['seg'][:]
 
             self.model.convolve(self.psf)
-            self.model.covolved_models = cp.asnumpy(self.model.covolved_models)
+            self.model.convolved_models = cp.asnumpy(self.model.convolved_models)
             mosaic = self.model.make_mosaic(data, segment, (e, t, r))
 
             if save:

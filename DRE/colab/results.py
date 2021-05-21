@@ -114,14 +114,14 @@ class Result:
 
 
 class Results:
-    def __init__(self, model, output_dir='Summary', chi_dir='Chi', images_dir='Tiles', cuts_dir='Cuts', psf_dir='PSF',
-                 catalogs_dir='Sextracted'):
+    def __init__(self, model, output_dir='Summary', chi_dir='Chi', images_dir='Tiles', cuts_dir='Cuts',
+                 psf_dir='PSF', catalogs_dir='Sextracted', recompute=False):
         self.model = model
         self.output_dir = output_dir
         self.results = []
         self.total_results = Result(self.model, self.output_dir)
         self.total_results.name = "Total Results"
-        self.load_results(chi_dir, images_dir, cuts_dir, psf_dir, catalogs_dir)
+        self.load_results(chi_dir, images_dir, cuts_dir, psf_dir, catalogs_dir, recompute)
 
     def __getitem__(self, item):
         return self.results[item]
@@ -133,8 +133,8 @@ class Results:
         for result in self.results:
             result.save()
 
-    def load_results(self, chi_dir, images_dir, cuts_dir, psf_dir, catalogs_dir):
-        if os.path.isdir(self.output_dir):
+    def load_results(self, chi_dir, images_dir, cuts_dir, psf_dir, catalogs_dir, recompute):
+        if os.path.isdir(self.output_dir) and not recompute:
             _, _, files = next(os.walk(self.output_dir))
             for summary_file in sorted(files):
                 result = Result(self.model, self.output_dir)
@@ -169,8 +169,8 @@ class Results:
     def set_catalogs(self, catalogs_dir):
         for result in self.results:
             if os.path.isdir(f"{catalogs_dir}/{result.name}"):
-                basename = f"{catalogs_dir}/{result.name}/{result.name}"
+                cat_file = f"{catalogs_dir}/{result.name}/{result.name}_cat.fits"
             else:
-                basename = f"{catalogs_dir}/{result.name}"
-            cat = cat_to_table(basename)
+                cat_file = f"{catalogs_dir}/{result.name}_cat.fits"
+            cat = cat_to_table(cat_file)
             result.join_catalog(cat)

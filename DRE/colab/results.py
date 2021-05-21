@@ -50,8 +50,8 @@ class Result:
         with File(chi_file, 'r') as chi_h5f:
             self.name = os.path.basename(chi_file).replace('_chi.h5', '')
             names = list(chi_h5f.keys())
-            parameters['ROW'] = list(range(len(names)))
             for i, name in enumerate(names):
+                parameters['ROW'].append(i)
                 ext, numb = name.split('_')
                 parameters['EXT_NUMBER'].append(int(ext))
                 parameters['NUMBER'].append(int(numb))
@@ -85,9 +85,8 @@ class Result:
         plt.show()
 
     def join_catalog(self, cat_table):
-        print(self.table.colnames)
-        print(cat_table.colnames)
         self.table = join(self.table, QTable(cat_table), join_type='inner')
+        self.table['ROW'] = np.arange(len(self.table))
         self.table.add_index('ROW')
         self.table.add_index('EXT_NUMBER')
         self.table.add_index('NUMBER')

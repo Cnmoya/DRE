@@ -11,7 +11,7 @@ setuptools.setup(
     description="completar descripcion...",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/furcelay/DRE",
+    url="https://github.com/Cnmoya/DRE",
     project_urls={
         "Bug Tracker": "https://github.com/Cnmoya/DRE/issues",
     },

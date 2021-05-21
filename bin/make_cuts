@@ -6,7 +6,7 @@ from DRE import Cutter
 if __name__ == "__main__":
 
     def parse_arguments():
-        parser = argparse.ArgumentParser()
+        parser = argparse.ArgumentParser(description='Cut images of 128x128 centered in sextracted objects')
 
         parser.add_argument("-t", "--tiles", help="root directory to original data (def: Tiles)",
                             default="Tiles", type=str)
@@ -15,7 +15,7 @@ if __name__ == "__main__":
         parser.add_argument("-o", "--output", help="output directory (def: Cuts)", type=str, default="Cuts")
         parser.add_argument("--margin", help="exclude objects outside a margin (def: 80)", type=int, default=80)
         parser.add_argument("--max-stellarity",
-                            help="maximum SexTractor stellarity to be considered a galaxy (def: 0.5)",
+                            help="maximum SExtractor 'CLASS_STAR' stelarity to be considered a galaxy (def: 0.5)",
                             default=0.5)
         parser.add_argument("--compression", help="compresion level for the h5 output file,"
                                                   "lower is faster (def: medium)",

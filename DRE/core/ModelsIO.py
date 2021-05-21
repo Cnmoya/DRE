@@ -72,23 +72,27 @@ class ModelsCube:
             # fit all cuts in each file
             self.fit_file(name, input_file, output_file, psf, progress_status=f"({i + 1}/{len(files)})")
 
-    def pond_rad_3d(self, chi_cube):
-        r_pond = np.sum((10 ** self.log_r) / chi_cube)
-        r_pond = r_pond / np.sum(1. / chi_cube)
-        log_r_pond = np.log10(r_pond)
+    def pond_rad_3d(self, chi_cube, log_r_min):
+        r_chi = np.sum((10 ** self.log_r) / chi_cube)
+        r_chi = r_chi / np.sum(1. / chi_cube)
+        log_r_chi = np.log10(r_chi)
 
-        r_var = np.sum(((10 ** self.log_r - r_pond) ** 2) / chi_cube)
+        r_var = np.sum(((10 ** self.log_r - 10 ** log_r_min) ** 2) / chi_cube)
         r_var = r_var / np.sum(1. / chi_cube)
         log_r_var = np.log10(r_var)
-        return log_r_pond, log_r_var
+
+        r_chi_var = np.sum(((10 ** self.log_r - r_chi) ** 2) / chi_cube)
+        r_chi_var = r_chi_var / np.sum(1. / chi_cube)
+        log_r_chi_var = np.log10(r_chi_var)
+        return log_r_chi, log_r_var, log_r_chi_var
 
     def get_parameters(self, chi_cube):
         e, t, r = np.unravel_index(np.nanargmin(chi_cube), chi_cube.shape)
         min_chi = np.nanmin(chi_cube)
-        log_r_pond, log_r_var = self.pond_rad_3d(chi_cube)
+        log_r_chi, log_r_var, log_r_chi_var = self.pond_rad_3d(chi_cube, self.log_r[r])
         parameters = {'R_IDX': r, 'E_IDX': e, 'T_IDX': t,
                       'LOGR': self.log_r[r], 'AX_RATIO': self.ax_ratio[e], 'ANGLE': self.angle[t],
-                      'LOGR_POND': log_r_pond, 'LOGR_VAR': log_r_var,
+                      'LOGR_CHI': log_r_chi, 'LOGR_VAR': log_r_var, 'LOGR_CHI_VAR': log_r_chi_var,
                       'CHI': min_chi}
         return parameters
 

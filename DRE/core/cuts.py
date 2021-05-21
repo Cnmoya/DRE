@@ -51,7 +51,6 @@ class Cutter:
                         seg_cut[~seg_mask] = 0
                         seg_cut[seg_mask] = 1
 
-                        # algo raro aca, shifts muy altos
                         mini_obj = self.cut_object(obj, row, ext_number, size=12)
                         xo, yo = centroid_1dg(mini_obj)
                         x_shift, y_shift = 5.5 - xo, 5.5 - yo

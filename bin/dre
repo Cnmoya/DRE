@@ -8,7 +8,7 @@ from DRE import ModelCPU
 if __name__ == "__main__":
 
     def parse_arguments():
-        parser = argparse.ArgumentParser()
+        parser = argparse.ArgumentParser(description='Run DRE with multiprocessing')
 
         parser.add_argument("-m", "--model", help="models cube file", type=str, default=None)
         parser.add_argument("--psf", help="directory with PSF's (def: PSF)", type=str, default="PSF")

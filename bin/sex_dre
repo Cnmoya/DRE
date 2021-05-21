@@ -20,6 +20,10 @@ def run_sextractor(input_file, args):
     sex_config["-CATALOG_TYPE"] = "FITS_LDAC"
     sex_config["-CHECKIMAGE_TYPE"] = "-BACKGROUND,BACKGROUND_RMS,SEGMENTATION"
     sex_config["-CHECKIMAGE_NAME"] = f"{basename}_nb.fits,{basename}_rms.fits,{basename}_seg.fits"
+
+    if os.path.isfile(f"{args.flags}/{input_name}_flag.fits"):
+        sex_config["-FLAG_IMAGE"] = f"{args.flags}/{input_name}"
+
     options = [x for item in sex_config.items() for x in item]
     command = ["sex"] + [input_file] + options
     run(command)
@@ -28,15 +32,20 @@ def run_sextractor(input_file, args):
 if __name__ == "__main__":
 
     def parse_arguments():
-        parser = argparse.ArgumentParser()
+        parser = argparse.ArgumentParser(description='Wrapper for running SExtractor with DRE parameters')
 
-        parser.add_argument('-i', "--input", help="single fits image to sectract", type=str, default=None)
-        parser.add_argument('-t', "--tiles", help="directory with images to sextract", default="Tiles", type=str)
-        parser.add_argument('-o', "--output", help="root directory to sextracted data (def: Sextracted)",
+        parser.add_argument('-i', "--input", help="submits single fits image to SExctractor",
+                            type=str, default=None)
+        parser.add_argument('-t', "--tiles", help="submits directory with images to SExctractor",
+                            default="Tiles", type=str)
+        parser.add_argument('-o', "--output", help="output directory for sextracted data (def: Sextracted)",
                             type=str, default="Sextracted")
-        parser.add_argument('-c', "--config", help="Sextractor configuration file (def: default.sex)",
+        parser.add_argument('-c', "--config", help="SExtractor configuration file (def: default.sex)",
                             type=str, default="default.sex")
         parser.add_argument('--subdir', help="make a subdirectory for each image", action='store_true')
+        parser.add_argument('--flags', help="directory with flag fits images, "
+                                            "must have the same name as the input image but ending in '_flag' "
+                                            "(def: Flags)", type=str, default='Flags')
 
         args = parser.parse_args()
 

@@ -8,7 +8,7 @@ from functools import partial
 from h5py import File
 import time
 import datetime
-from DRE.core.ModelsIO import ModelsCube
+from DRE.core.models import ModelsCube
 from DRE.core.results import Summary
 from DRE.misc.progress_bar import progress
 from astropy.io import fits
@@ -21,9 +21,11 @@ class ModelCPU(ModelsCube):
         self.chunk_size = chunk_size
         self.n_cpu = n_cpu
 
-        self.conv_pool = mp.Pool(self.n_cpu)
-        self.input_queue = mp.Queue()
-        self.output_queue = mp.Queue()
+        # context for running multiprocessing safe
+        self.__ctx = mp.get_context('spawn')
+        # queues for input/output
+        self.input_queue = self.__ctx.Queue()
+        self.output_queue = self.__ctx.Queue()
         self.feed_thread = None
         self.output_thread = None
         self.processes = []
@@ -33,12 +35,11 @@ class ModelCPU(ModelsCube):
         self.log_r = self.to_shared_mem(self.log_r)
         self.ax_ratio = self.to_shared_mem(self.ax_ratio)
         self.angle = self.to_shared_mem(self.angle)
-        self.save_mosaics = mp.Value(ctypes.c_bool, save_mosaics)
+        self.save_mosaics = self.__ctx.Value(ctypes.c_bool, save_mosaics)
 
-    @staticmethod
-    def to_shared_mem(array):
+    def to_shared_mem(self, array):
         shape = array.shape
-        shared_array_base = mp.Array(ctypes.c_float, int(np.prod(shape)))
+        shared_array_base = self.__ctx.Array(ctypes.c_float, int(np.prod(shape)))
         shared_array = np.ctypeslib.as_array(shared_array_base.get_obj())
         shared_array = shared_array.reshape(shape)
         shared_array[:] = array
@@ -51,7 +52,8 @@ class ModelCPU(ModelsCube):
             psf = psf_h5f['psf'][:]
         psf = psf[np.newaxis, np.newaxis, :]
         convolve = partial(fftconvolve, in2=psf, mode='same', axes=(-2, -1))
-        convolved = self.conv_pool.map(convolve, self.models)
+        with self.__ctx.Pool(self.n_cpu) as pool:
+            convolved = pool.map(convolve, self.models)
         self.convolved_models = self.to_shared_mem(np.array(list(convolved)))
         print(f"{progress_status}: Convolved! ({time.time() - start:2.2f}s)")
 
@@ -69,7 +71,7 @@ class ModelCPU(ModelsCube):
         return chi
 
     def cpu_worker(self, input_q, output_q):
-        for name, data, segment, noise in iter(input_q.get, ('STOP', '', '', '')):
+        for name, data, segment, noise in iter(input_q.get, 'STOP'):
             chi_cube = self.dre_fit(data, segment, noise)
             parameters = None
             mosaic = None
@@ -93,7 +95,7 @@ class ModelCPU(ModelsCube):
                 # subscribes input to workers queue
                 self.input_queue.put((name, data['obj'][:], data['seg'][:], data['rms'][:]))
         for i in range(self.n_cpu):
-            self.input_queue.put(('STOP', '', '', ''))
+            self.input_queue.put('STOP')
 
     def get_output(self, input_name, n_tasks, output_file, table, progress_status):
         for i in range(n_tasks):
@@ -117,14 +119,14 @@ class ModelCPU(ModelsCube):
         self.output_thread.start()
         self.processes = []
         for i in range(self.n_cpu):
-            p = mp.Process(target=self.cpu_worker, args=(self.input_queue, self.output_queue))
+            p = self.__ctx.Process(target=self.cpu_worker, args=(self.input_queue, self.output_queue))
             self.processes.append(p)
             p.start()
 
     def stop_processes(self):
+        self.feed_thread.join()
         for p in self.processes:
             p.join()
-        self.feed_thread.join()
         self.output_thread.join()
 
     def fit_file(self, input_name, input_file, output_file, psf, progress_status=''):

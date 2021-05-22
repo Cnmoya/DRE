@@ -3,7 +3,7 @@ from opt_einsum import contract_expression
 from h5py import File
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from DRE.core.ModelsIO import ModelsCube
+from DRE.core.models import ModelsCube
 from .convolve_gpu import gpu_fftconvolve
 
 

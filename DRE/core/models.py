@@ -25,8 +25,7 @@ class ModelsCube:
         self.load_models(models_file)
 
     def __getitem__(self, index):
-        i, j, k = index
-        return self.models[i, j, k]
+        return self.models.__getitem__(index)
 
     @property
     def shape(self):

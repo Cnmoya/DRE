@@ -1,7 +1,7 @@
 # files/dirs to ignore
 scripts/sex_dre.sh
 scripts/sex_source/
-scripts/test_multiprocess.py
+scripts/test_multiprocess*
 scripts/test.h5
 
 # IDLE

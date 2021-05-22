@@ -5,6 +5,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from DRE.core.models import ModelsCube
 from .convolve_gpu import gpu_fftconvolve
+import os
 
 
 class ModelGPU(ModelsCube):
@@ -22,7 +23,7 @@ class ModelGPU(ModelsCube):
     def to_gpu(self):
         self.models = cp.array(self.models)
 
-    def convolve(self, psf_file, progress_status=''):
+    def convolve(self, psf_file):
         with File(psf_file, 'r') as psf_h5f:
             psf = cp.array(psf_h5f['psf'][:])
         self.convolved_models = cp.zeros(self.models.shape)
@@ -48,7 +49,7 @@ class ModelGPU(ModelsCube):
         chi = chi / area
         return chi
 
-    def fit_file(self, input_name, input_file, output_file, psf, progress_status=''):
+    def fit_file(self, input_file, output_file, psf, progress_status=''):
         self.convolve(psf)
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
@@ -60,6 +61,20 @@ class ModelGPU(ModelsCube):
                 with File(output_file, 'a') as output_h5f:
                     output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),
                                               dtype='float32', **self.compression)
+
+    def fit_dir(self, input_dir='Cuts', output_dir='Chi', psf_dir='PSF'):
+        # list with input files in input_dir
+        _, _, files = next(os.walk(input_dir))
+        os.makedirs(output_dir, exist_ok=True)
+        for i, filename in enumerate(sorted(files)):
+            input_file = f"{input_dir}/{filename}"
+            name = os.path.basename(filename).replace('_cuts.h5', '')
+            output_file = f"{output_dir}/{name}_chi.h5"
+            psf = f"{psf_dir}/{name}_psf.h5"
+            if os.path.isfile(output_file):
+                os.remove(output_file)
+            # fit all cuts in each file
+            self.fit_file(input_file, output_file, psf, progress_status=f"({i + 1}/{len(files)})")
 
     def visualize_model(self, ratio_idx, psf=None, figsize=(20, 20), vmin=0, vmax=100, cmap='gray'):
         plt.figure(figsize=figsize)

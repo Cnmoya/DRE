@@ -48,28 +48,11 @@ class ModelsCube:
         models_fits = fits.ImageHDU(data=cube)
         models_fits.writeto(output_file, overwrite=True)
 
-    def convolve(self, psf_file: str, progress_status=''):
+    def convolve(self, psf_file, *args, **kwargs):
         pass
 
     def dre_fit(self, data, segment, noise):
         pass
-
-    def fit_file(self, input_name, input_file, output_file, psf, progress_status=''):
-        pass
-
-    def fit_dir(self, input_dir='Cuts', output_dir='Chi', psf_dir='PSF'):
-        # list with input files in input_dir
-        _, _, files = next(os.walk(input_dir))
-        os.makedirs(output_dir, exist_ok=True)
-        for i, filename in enumerate(sorted(files)):
-            input_file = f"{input_dir}/{filename}"
-            name = os.path.basename(filename).replace('_cuts.h5', '')
-            output_file = f"{output_dir}/{name}_chi.h5"
-            psf = f"{psf_dir}/{name}_psf.h5"
-            if os.path.isfile(output_file):
-                os.remove(output_file)
-            # fit all cuts in each file
-            self.fit_file(name, input_file, output_file, psf, progress_status=f"({i + 1}/{len(files)})")
 
     def pond_rad_3d(self, chi_cube, log_r_min):
         r_chi = np.sum((10 ** self.log_r) / chi_cube)

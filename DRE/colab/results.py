@@ -188,7 +188,7 @@ class Results:
 
     def set_psf(self, psf_dir):
         for result in self.results:
-            result.psf = f"{psf_dir}/{result.name}_psf.h5"
+            result.psf = f"{psf_dir}/{result.name}.psf"
 
     def set_catalogs(self, catalogs_dir):
         for result in self.results:

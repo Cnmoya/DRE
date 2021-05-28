@@ -5,6 +5,7 @@ from tqdm import tqdm
 import matplotlib.pyplot as plt
 from DRE.core.models import ModelsCube
 from .convolve_gpu import gpu_fftconvolve
+from DRE.misc.read_psf import get_psf
 import os
 
 
@@ -23,9 +24,8 @@ class ModelGPU(ModelsCube):
     def to_gpu(self):
         self.models = cp.array(self.models)
 
-    def convolve(self, psf_file):
-        with File(psf_file, 'r') as psf_h5f:
-            psf = cp.array(psf_h5f['psf'][:])
+    def convolve(self, psf_file, *args, **kwargs):
+        psf = get_psf(psf_file)
         self.convolved_models = cp.zeros(self.models.shape)
         for i in range(self.convolved_models.shape[0]):
             self.convolved_models[i] = gpu_fftconvolve(self.models[i], psf[cp.newaxis, cp.newaxis],
@@ -70,7 +70,7 @@ class ModelGPU(ModelsCube):
             input_file = f"{input_dir}/{filename}"
             name = os.path.basename(filename).replace('_cuts.h5', '')
             output_file = f"{output_dir}/{name}_chi.h5"
-            psf = f"{psf_dir}/{name}_psf.h5"
+            psf = f"{psf_dir}/{name}.psf"
             if os.path.isfile(output_file):
                 os.remove(output_file)
             # fit all cuts in each file

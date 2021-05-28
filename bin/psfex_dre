@@ -1,0 +1,45 @@
+#!/bin/env python
+
+import os
+import argparse
+from subprocess import run
+
+
+def run_psfex(input_file, args):
+    psfex_config = dict()
+    psfex_config['-c'] = f"{args.cwd}/{args.config}"
+
+    options = [x for item in psfex_config.items() for x in item]
+    command = ["psfex"] + [input_file] + options
+    run(command)
+
+    initial_name = input_file.replace('.fits', '.psf')
+    new_name = os.path.basename(initial_name).replace('_cat', '')
+    os.replace(initial_name, new_name)
+
+
+if __name__ == "__main__":
+
+    def parse_arguments():
+        parser = argparse.ArgumentParser(description='Wrapper for running PSFex with DRE parameters')
+
+        parser.add_argument('-i', "--input", help="directory with SExtractor catalogs", type=str, default="Sextracted")
+        parser.add_argument('-o', "--output", help="output directory for the DRE PSF's (def: PSF)",
+                            type=str, default="PSF")
+        parser.add_argument('-c', "--config", help="PSFex configuration file (def: default.psfex)",
+                            type=str, default="default.psfex")
+
+        args = parser.parse_args()
+
+        return args
+
+    args_ = parse_arguments()
+
+    args_.cwd = os.getcwd()
+    os.makedirs(args_.output, exist_ok=True)
+    os.chdir(args_.output)
+
+    for root, dirs, files in os.walk(os.path.join(args_.cwd, args_.input), topdown=False):
+        for file in files:
+            if '_cat.fits' in file:
+                run_psfex(f"{root}/{file}", args_)

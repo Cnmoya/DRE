@@ -10,6 +10,7 @@ from h5py import File
 from DRE.core.models import ModelsCube
 from DRE.core.results import Summary
 from DRE.misc.progress_bar import progress
+from DRE.misc.read_psf import get_psf
 from astropy.io import fits
 import os
 import time
@@ -50,13 +51,13 @@ class ModelCPU(ModelsCube):
         return chi
 
     def convolve(self, psf_file, n_proc=1, *args, **kwargs):
-        with File(psf_file, 'r') as psf_h5f:
-            psf = psf_h5f['psf'][:]
-        psf = psf[np.newaxis, np.newaxis, :]
+        psf = get_psf(psf_file)
         convolve = partial(fftconvolve, in2=psf, mode='same', axes=(-2, -1))
+        flatten_shape = (np.prod(self.models.shape[:-2]), *self.models.shape[-2:])
         with mp.Pool(n_proc) as pool:
-            convolved = pool.map(convolve, self.models)
-        self.convolved_models = self.to_shared_mem(np.array(list(convolved)))
+            convolved = pool.map(convolve, self.models.reshape(flatten_shape))
+        convolved = np.array(list(convolved)).reshape(self.models.shape)
+        self.convolved_models = self.to_shared_mem(convolved)
 
 
 class Parallelize:
@@ -187,7 +188,7 @@ class Parallelize:
             input_file = f"{input_dir}/{filename}"
             name = os.path.basename(filename).replace('_cuts.h5', '')
             output_file = f"{output_dir}/{name}_chi.h5"
-            psf = f"{psf_dir}/{name}_psf.h5"
+            psf = f"{psf_dir}/{name}.psf"
             if os.path.isfile(output_file):
                 os.remove(output_file)
             # fit all cuts in each file

@@ -7,11 +7,11 @@ import warnings
 if __name__ == "__main__":
 
     def parse_arguments():
-        parser = argparse.ArgumentParser(description='Cut images of 128x128 centered in sextracted objects')
+        parser = argparse.ArgumentParser(description='Cut images of 128x128 centered in SExtracted objects')
 
-        parser.add_argument("-t", "--tiles", help="root directory to original data (def: Tiles)",
+        parser.add_argument("-i", "--input", help="root directory to original data (def: Tiles)",
                             default="Tiles", type=str)
-        parser.add_argument("-s", "--sextracted", help="root directory to sextracted data (def: Sextracted)",
+        parser.add_argument("-s", "--sextracted", help="root directory to SExtracted data (def: Sextracted)",
                             type=str, default="Sextracted")
         parser.add_argument("-o", "--output", help="output directory (def: Cuts)", type=str, default="Cuts")
         parser.add_argument("--margin", help="exclude objects outside a margin (def: 80)", type=int, default=80)
@@ -34,5 +34,5 @@ if __name__ == "__main__":
         warnings.filterwarnings('ignore', category=UserWarning, append=True)
 
     cutter = Cutter(args.margin, args.max_stellarity, args.compression)
-    cutter.cut_tiles(args.tiles, args.sextracted, args.output)
+    cutter.cut_tiles(args.input, args.sextracted, args.output)
 

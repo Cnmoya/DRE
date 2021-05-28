@@ -29,13 +29,11 @@ y los parámetros `X_IMAGE`, `Y_IMAGE` y `CLASS_STAR`. Además requiere una PSF 
 ├── Tiles
 │   ├── image1.fits
 │   └── image2.fits
-├── Flags
-│   ├── image1_flag.fits
-│   └── image2_flag.fits
 ├── sex_source
 │   ├── default.nnw
 │   ├── default.param
-│   └── default.sex
+│   ├── default.sex
+│   └── default.psfex
 ├── Sextracted
 │   ├── image1
 │   │   ├── image1_cat.fits   # SExtractor catalog
@@ -43,16 +41,13 @@ y los parámetros `X_IMAGE`, `Y_IMAGE` y `CLASS_STAR`. Además requiere una PSF 
 │   │   ├── image1_rms.fits   # BACKGROUND_RMS
 │   │   └── image1_seg.fits   # SEGMENTATION
 │   └── image2
-│       ├── image2_cat.cat
 │       ├── image2_cat.fits
-│       ├── image2_obj_nb.fits
+│       ├── image2_nb.fits
 │       ├── image2_rms.fits
 │       └── image2_seg.fits
-├── psfex_source
-│   └── default.psfex
 ├── PSF
-│   ├── image1_psf.h5
-│   └── image2_psf.h5
+│   ├── image1.psf
+│   └── image2.psf
 ├── Cuts
 │   ├── image1_cuts.h5
 │   └── image2_cuts.h5

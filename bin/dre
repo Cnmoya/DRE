@@ -35,7 +35,7 @@ if not args.warn:
 if __name__ == "__main__":
     set_start_method('spawn')
 
-    model = ModelCPU(args.model, args.compression)
+    model = ModelCPU(args.model, args.compression, args.mosaics)
     parallelize = Parallelize(args.cpu, args.chunk)
     # fit in parallel
     parallelize.fit_dir(model, args.input, args.output, args.psf)

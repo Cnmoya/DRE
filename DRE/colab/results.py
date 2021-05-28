@@ -113,7 +113,7 @@ class Result:
             e, t, r = row['E_IDX', 'T_IDX', 'R_IDX']
 
             with File(f"{self.cuts}/{self.name}_cuts.h5", 'r') as cuts_h5f:
-                cuts = cuts_h5f[f'{ext_number}_{cat_number}']
+                cuts = cuts_h5f[f'{ext_number:02d}_{cat_number:04d}']
                 data = cuts['obj'][:]
                 segment = cuts['seg'][:]
 

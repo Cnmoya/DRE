@@ -95,7 +95,10 @@ DRE también puede usar aceleración por GPU con CUDA, esta opción permite cál
 la plataforma Google Colab, que permite ejecutar Python de forma interactiva en un servidor de Google. Esta opción es conveniente para realizar cálculos rápidamente
 y analizar los resultados en la misma plataforma, pero el inconveniente es que en la versión gratuita de Colab los tiempos para GPU son limitados.
 
-Como ejemplo de como usar DRE en Colab puedes ver el siguiente notebook: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/furcelay/DRE/blob/master/Example/DRE_Example.ipynb)
+Como ejemplo de como usar DRE en Colab puedes ver el siguiente notebook:
+<a href="https://colab.research.google.com/github/furcelay/DRE/blob/master/Example/DRE_Example.ipynb" target="_blank" rel="noopener noreferrer">
+  <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
+</a>
 
 ## Directorio de trabajo
 Para facilitar la automatización DRE realiza los cálculos sobre todos los archivos en un directorio, a continuación se muestra un ejemplo de la estructura

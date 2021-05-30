@@ -60,8 +60,9 @@ Puedes hacer las modificaciones que quieras antes de instalarlo. Para instalar d
 pip install ./DRE
 ```
 
-Nota: Los modelos que se encuentran en `/DRE/models` no se descargarán a menos que tengas instalado
-[git-lfs](https://git-lfs.github.com/) para el soporte de archivos pesados.
+Nota: Los modelos que se encuentran en `DRE/DRE/models` no se descargarán con `git clone` a menos que tengas instalado
+[git-lfs](https://git-lfs.github.com/) para el soporte de archivos pesados, si no puedes instalar git-lfs
+puedes descargar el repositorio como zip o clonarlo y luego copiar un archivo de modelos a `DRE/DRE/models` antes de la instalación.
 
 # Como usar DRE
 
@@ -94,7 +95,7 @@ DRE también puede usar aceleración por GPU con CUDA, esta opción permite cál
 la plataforma Google Colab, que permite ejecutar Python de forma interactiva en un servidor de Google. Esta opción es conveniente para realizar cálculos rápidamente
 y analizar los resultados en la misma plataforma, pero el inconveniente es que en la versión gratuita de Colab los tiempos para GPU son limitados.
 
-Como ejemplo de como usar DRE en Colab puedes ver nuestro [![Example Notebook](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/github/googlecolab/colabtools/blob/master/notebooks/colab-github-demo.ipynb)
+Como ejemplo de como usar DRE en Colab puedes ver nuestro [![Example Notebook](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/furcelay/DRE/Example/DRE_Example.ipynb)
 
 ## Directorio de trabajo
 Para facilitar la automatización DRE realiza los cálculos sobre todos los archivos en un directorio, a continuación se muestra un ejemplo de la estructura
@@ -266,12 +267,15 @@ optional arguments:
 
 ```
 
-La instalación (por ahora) no incluirá los modelos a menos que tengas instalado [git-lfs](https://git-lfs.github.com/)
-por lo que un argumento obligatorio es el archivo con los modelos que debe pasarse en primer lugar.
-Suponiendo que tienes los modelos en la raíz del directorio de trabajo podemos ejecutar DRE con 4 cpu's
-con el siguiente comando:
+Por ejemplo podemos ejecutar DRE con 4 cpu's y generar mosaicos con el siguiente comando:
 ```
-$ dre modelbulge.fits --cpu 4
+$ dre --cpu 4 --mosaics
+```
+
+Nota: La instalación (por ahora) no incluirá los modelos a menos que tengas instalado [git-lfs](https://git-lfs.github.com/)
+por lo que si no los añades manualmente antes de la instalación tendrás que darle el archivo de modelos como argumento, por ejemplo:
+```
+$ dre -m modelbulge.fits
 ```
 
 [Acerca de]: #acerca-de

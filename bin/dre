@@ -9,7 +9,7 @@ from multiprocessing import set_start_method
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Run DRE with multiprocessing')
 
-    parser.add_argument("model", help="models cube file", type=str, default=None)
+    parser.add_argument("-m", "--model", help="models cube file", type=str, default=None)
     parser.add_argument("--psf", help="directory with PSF's (def: PSF)", type=str, default="PSF")
     parser.add_argument("-i", "--input", help="directory with cuts (def: Cuts)",
                         default="Cuts", type=str)

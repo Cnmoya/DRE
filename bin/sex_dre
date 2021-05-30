@@ -3,6 +3,7 @@
 import os
 import argparse
 from subprocess import run
+from astropy.io import fits
 
 
 def run_sextractor(input_file, args):
@@ -21,17 +22,49 @@ def run_sextractor(input_file, args):
     sex_config["-CHECKIMAGE_TYPE"] = "-BACKGROUND,BACKGROUND_RMS,SEGMENTATION"
     sex_config["-CHECKIMAGE_NAME"] = f"{basename}_nb.fits,{basename}_rms.fits,{basename}_seg.fits"
 
-    if os.path.isfile(f"{args.flags}/{input_name}_flag.fits"):
+    if args.flags:
         sex_config["-FLAG_IMAGE"] = f"{args.flags}/{input_name}_flag.fits"
-        print("Including flag image")
 
-    if os.path.isfile(f"{args.weights}/{input_name}_wht.fits"):
+    if args.weights:
         sex_config["-WEIGHT_IMAGE"] = f"{args.weights}/{input_name}_wht.fits"
-        print("Including weight image")
+
+    if args.gain:
+        sex_config["-GAIN"] = compute_gain(input_file, args)
 
     options = [x for item in sex_config.items() for x in item]
     command = ["sex"] + [input_file] + options
     run(command)
+
+
+def compute_gain(input_file, args):
+    header = fits.getheader(input_file)
+    if args.gain.lower() == 'counts':
+        gain = get_header_gain(header, args)
+    elif args.gain.lower() == 'cps':
+        gain = get_header_gain(header, args)
+        gain *= header['EXPTIME']
+    else:
+        try:
+            gain = float(args.gain)
+        except ValueError:
+            raise ValueError(f"{args.gain} is not a valid value for gain")
+    str_gain = f"{gain:4.4f}"
+    print(f"using GAIN={str_gain}")
+    return str_gain
+
+
+def get_header_gain(header, args):
+    if args.gain_key.lower() == 'auto':
+        if 'GAIN' in header:
+            return header['GAIN']
+        else:
+            gain_keys = header['*GAIN*']
+            if len(gain_keys) == 1:
+                return gain_keys[0]
+            else:
+                raise ValueError(f"Can't find the key for gain in header, please provide one")
+    else:
+        return header[args.gain_key]
 
 
 if __name__ == "__main__":
@@ -47,11 +80,17 @@ if __name__ == "__main__":
                             type=str, default="default.sex")
         parser.add_argument('--subdir', help="make a subdirectory for each image", action='store_true')
         parser.add_argument('--flags', help="directory with fits images to be passed as FLAG_IMAGE, "
-                                            "must have the same name as the input image but ending in '_flag' "
-                                            "(def: Flags)", type=str, default='Flags')
+                                            "must have the same name as the input image but ending in '_flag'",
+                            type=str)
         parser.add_argument('--weights', help="directory with fits images to be passed as WEIGHT_IMAGE, "
-                                              "must have the same name as the input image but ending in '_wht' "
-                                              "(def: Weights)", type=str, default='Weights')
+                                              "must have the same name as the input image but ending in '_wht'",
+                            type=str)
+        parser.add_argument('--gain', help="Can be 'counts' to read from the header and it as GAIN, "
+                                           "'cps' to read from the header and use GAIN*EXPOSURE_TIME, "
+                                           "or a float  in e-/ADU to be used directly as GAIN", type=str)
+        parser.add_argument('--gain-key', help="Header key for gain if 'counts' or 'cps' are used "
+                                               "or 'auto' to search in the header (Def: auto)",
+                            type=str, default='auto')
 
         args = parser.parse_args()
 
@@ -61,4 +100,6 @@ if __name__ == "__main__":
 
     _, _, files = next(os.walk(args_.input))
     for file in sorted(files):
+        print(60 * "=")
+        print(file)
         run_sextractor(f"{args_.input}/{file}", args_)

@@ -13,8 +13,8 @@ Contenidos
   * [Preprocesamiento]
   * [Recotes]
   * [Ejecutar DRE]
-    * [En CPU]
-    * [En GPU]
+    * [Localmente (CPU)]
+    * [En Colab (GPU)]
 * [Directorio de trabajo]
 * [Scripts]
   * [sex_dre]
@@ -87,15 +87,15 @@ Para esto se puede usar el script `make_cuts` que genera recortes de $128x128$ p
 ## Ejecutar DRE
 Finalmente para ejecutar DRE puedes hacerlo de dos formas:
 
-### En CPU
+### Localmente (CPU)
 Puedes ejecutar DRE en paralelo con el script `dre`, esta opción es conveniente si deseas ejecutarlo de forma prolongada sobre una lista muy extensa de archivos
 
-### En GPU
+### En Colab (GPU)
 DRE también puede usar aceleración por GPU con CUDA, esta opción permite cálculos a una mayor velocidad que por CPU. La mejor forma de hacerlo es usando
 la plataforma Google Colab, que permite ejecutar Python de forma interactiva en un servidor de Google. Esta opción es conveniente para realizar cálculos rápidamente
 y analizar los resultados en la misma plataforma, pero el inconveniente es que en la versión gratuita de Colab los tiempos para GPU son limitados.
 
-Como ejemplo de como usar DRE en Colab puedes ver el siguiente notebook: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/furcelay/DRE/Example/DRE_Example.ipynb)
+Como ejemplo de como usar DRE en Colab puedes ver el siguiente notebook: [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://github.com/furcelay/DRE/blob/master/Example/DRE_Example.ipynb)
 
 ## Directorio de trabajo
 Para facilitar la automatización DRE realiza los cálculos sobre todos los archivos en un directorio, a continuación se muestra un ejemplo de la estructura
@@ -286,8 +286,8 @@ $ dre -m modelbulge.fits
 [Preprocesamiento]: #preprocesamiento
 [Recotes]: #recortes
 [Ejecutar DRE]: #ejecutar-dre
-[En CPU]: #en-cpu
-[En GPU]: #en-gpu
+[Localmente (CPU)]: #localmente-cpu
+[En Colab (GPU)]: #en-colab-gpu
 [Directorio de trabajo]: #directorio-de-trabajo
 [Scripts]: #scripts
 [sex_dre]: #sex_dre

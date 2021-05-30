@@ -96,7 +96,7 @@ la plataforma Google Colab, que permite ejecutar Python de forma interactiva en 
 y analizar los resultados en la misma plataforma, pero el inconveniente es que en la versión gratuita de Colab los tiempos para GPU son limitados.
 
 Como ejemplo de como usar DRE en Colab puedes ver el siguiente notebook:
-<a href="https://colab.research.google.com/github/furcelay/DRE/blob/master/Example/DRE_Example.ipynb" target="_blank" rel="noopener noreferrer">
+<a onclick='window.open("https://colab.research.google.com/github/furcelay/DRE/blob/master/Example/DRE_Example.ipynb");return false;'>
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
 

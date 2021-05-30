@@ -23,7 +23,8 @@ if __name__ == "__main__":
     def parse_arguments():
         parser = argparse.ArgumentParser(description='Wrapper for running PSFex with DRE parameters')
 
-        parser.add_argument('-i', "--input", help="directory with SExtractor catalogs", type=str, default="Sextracted")
+        parser.add_argument('-i', "--input", help="directory with SExtractor catalogs (def: Sextracted)",
+                            type=str, default="Sextracted")
         parser.add_argument('-o', "--output", help="output directory for the DRE PSF's (def: PSF)",
                             type=str, default="PSF")
         parser.add_argument('-c', "--config", help="PSFex configuration file (def: default.psfex)",

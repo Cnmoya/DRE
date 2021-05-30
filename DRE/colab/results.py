@@ -1,5 +1,4 @@
 import numpy as np
-import cupy as cp
 from h5py import File
 from astropy.table import QTable, join, vstack
 from astropy.io import fits
@@ -117,8 +116,7 @@ class Result:
                 data = cuts['obj'][:]
                 segment = cuts['seg'][:]
 
-            self.model.convolve(self.psf)
-            self.model.convolved_models = cp.asnumpy(self.model.convolved_models)
+            self.model.convolve(self.psf, to_cpu=True)
             mosaic = self.model.make_mosaic(data, segment, (e, t, r))
 
             if save:

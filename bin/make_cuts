@@ -14,7 +14,8 @@ if __name__ == "__main__":
         parser.add_argument("-s", "--sextracted", help="root directory to SExtracted data (def: Sextracted)",
                             type=str, default="Sextracted")
         parser.add_argument("-o", "--output", help="output directory (def: Cuts)", type=str, default="Cuts")
-        parser.add_argument("--margin", help="exclude objects outside a margin (def: 80)", type=int, default=80)
+        parser.add_argument("--margin", help="margin to exclude objects near the borders of the image (def: 80)",
+                            type=int, default=80)
         parser.add_argument("--max-stellarity",
                             help="maximum SExtractor 'CLASS_STAR' stelarity to be considered a galaxy (def: 0.5)",
                             default=0.5)

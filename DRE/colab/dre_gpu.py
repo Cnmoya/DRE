@@ -24,12 +24,14 @@ class ModelGPU(ModelsCube):
     def to_gpu(self):
         self.models = cp.array(self.models)
 
-    def convolve(self, psf_file, *args, **kwargs):
+    def convolve(self, psf_file, to_cpu=False, *args, **kwargs):
         psf = cp.array(get_psf(psf_file))
         self.convolved_models = cp.zeros(self.models.shape)
         for i in range(self.convolved_models.shape[0]):
             self.convolved_models[i] = gpu_fftconvolve(self.models[i], psf[cp.newaxis, cp.newaxis],
                                                        axes=(-2, -1))
+        if to_cpu:
+            self.convolved_models = cp.asnumpy(self.convolved_models)
 
     def dre_fit(self, data, segment, noise):
         # enviar a la GPU

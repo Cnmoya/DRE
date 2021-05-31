@@ -1,4 +1,4 @@
-from . import ModelsIO as MIO
+from Source import ModelsIO as MIO
 import numpy as np
 from h5py import File
 
@@ -22,7 +22,7 @@ def E_fit(_cube: np.ndarray((10, 13, 21, 128, 128), '>f4'),
     X = flux_data / flux_models
     scaled_models = X[:, :, :, np.newaxis, np.newaxis] * _cube
     resta = data - scaled_models
-    residuo = (resta ** 2) / (np.sqrt((scaled_models + noise ** 2)))
+    residuo = (resta ** 2) / (scaled_models + noise ** 2)
     chi = np.einsum("ijkxy,xy->ijk", residuo, seg)
 
     area = seg.sum()
@@ -31,22 +31,14 @@ def E_fit(_cube: np.ndarray((10, 13, 21, 128, 128), '>f4'),
 
 
 def read_obj_h5(name):
+    # debe ser
     try:
         with File(name, 'r') as f:
             data = f['obj'][:]
             seg = f['seg'][:]
             rms = f['rms'][:]
-            # noise = np.median(rms)
-            # d_t = np.tile(data, (10, 13, 21))
-            # s_t = np.tile(seg, (10, 13, 21))
-            # noise = np.tile(rms, (10, 13, 21))
-            # d_t = d_t.reshape((10, 13, 128, 21, 128))
-            # s_t = s_t.reshape((10, 13, 128, 21, 128))
-            # noise = noise.reshape((10, 13, 128, 21, 128))
 
             return data, seg, rms
-        # rms = MIO.fits.open(name.replace('objs','noise'))[1].data
-        # seg =  MIO.fits.open(name.replace('object',"segment").replace("objs","segs"))[1].data
 
     except IOError:
         print("{} not found".format(name))
@@ -64,11 +56,7 @@ def read_obj(name):
         print("{} not found".format(name))
         return False, False, False
     noise = np.median(rms)
-    d_t = np.tile(data, (10, 13, 21))
-    s_t = np.tile(seg, (10, 13, 21))
-    d_t = d_t.reshape((10, 13, 128, 21, 128))
-    s_t = s_t.reshape((10, 13, 128, 21, 128))
-    return d_t, s_t, noise
+    return data, seg, noise
 
 
 def feed(name, cube):
@@ -203,10 +191,8 @@ def make_mosaic(obj, chi, cube):
     """
 
     i, j, k = chi_index(chi)
-    model = cube[i, j, :, k, :]
+    model = cube[i, j, k]
     gal, seg, noise = read_obj(obj)
-    gal = gal[i, j, :, k, :]
-    seg = seg[i, j, :, k, :]
     output = chi.replace('chi_cube', 'mosaic').replace('cut_object', 'mosaic')
 
     fg = np.sum(gal * seg)
@@ -242,14 +228,11 @@ def make_mosaic_h5(obj, chi, cube):
     """
 
     i, j, k = chi_index(chi)
-    model = cube[i, j, :, k, :]
-    # gal,seg,noise=read_obj(obj)
-    # gal = gal[i,j,:,k,:]
-    # seg = seg[i,j,:,k,:]
+    model = cube[i, j, k]
     output = chi.replace('chi_cube', 'mosaic').replace('cut', 'mosaic')
     with File(obj, 'r') as f:
-        gal = f['obj'][:, :]
-        seg = f['seg'][:, :]
+        gal = f['obj'][:]
+        seg = f['seg'][:]
 
         fg = np.sum(gal * seg)
         fm1 = np.sum(model * seg)

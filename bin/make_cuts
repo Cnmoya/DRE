@@ -1,0 +1,39 @@
+#!/bin/env python
+
+import argparse
+from DRE import Cutter
+import warnings
+
+if __name__ == "__main__":
+
+    def parse_arguments():
+        parser = argparse.ArgumentParser(description='Cut images of 128x128 centered in SExtracted objects')
+
+        parser.add_argument("-i", "--input", help="root directory to original data (def: Tiles)",
+                            default="Tiles", type=str)
+        parser.add_argument("-s", "--sextracted", help="root directory to SExtracted data (def: Sextracted)",
+                            type=str, default="Sextracted")
+        parser.add_argument("-o", "--output", help="output directory (def: Cuts)", type=str, default="Cuts")
+        parser.add_argument("--margin", help="margin to exclude objects near the borders of the image (def: 80)",
+                            type=int, default=80)
+        parser.add_argument("--max-stellarity",
+                            help="maximum SExtractor 'CLASS_STAR' stelarity to be considered a galaxy (def: 0.5)",
+                            default=0.5)
+        parser.add_argument("--compression", help="compresion level for the h5 output file,"
+                                                  "lower is faster (def: medium)",
+                            choices=["none", "low", "medium", "high"], default="medium")
+        parser.add_argument("--warn", help="Print warnings", action='store_true')
+
+        args_ = parser.parse_args()
+
+        return args_
+
+
+    args = parse_arguments()
+
+    if not args.warn:
+        warnings.filterwarnings('ignore', category=UserWarning, append=True)
+
+    cutter = Cutter(args.margin, args.max_stellarity, args.compression)
+    cutter.cut_tiles(args.input, args.sextracted, args.output)
+

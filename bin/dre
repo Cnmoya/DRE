@@ -1,0 +1,41 @@
+#!/bin/env python
+
+import warnings
+import argparse
+from DRE.core.dre_cpu import ModelCPU, Parallelize
+from multiprocessing import set_start_method
+
+
+def parse_arguments():
+    parser = argparse.ArgumentParser(description='Run DRE with multiprocessing')
+
+    parser.add_argument("-m", "--model", help="models cube file", type=str, default=None)
+    parser.add_argument("--psf", help="directory with PSF's (def: PSF)", type=str, default="PSF")
+    parser.add_argument("-i", "--input", help="directory with cuts (def: Cuts)",
+                        default="Cuts", type=str)
+    parser.add_argument("-o", "--output", help="output directory (def: Chi)", type=str, default="Chi")
+    parser.add_argument("--mosaics", help="generate mosaics files for visualization", action="store_true")
+    parser.add_argument("--cpu", help="Number of cpu's to use", type=int, default=1)
+    parser.add_argument("--chunk", help="Max size of the queue", type=int, default=100)
+    parser.add_argument("--compression", help="compresion level for the h5 output file,"
+                                              "lower is faster (def: medium)",
+                        choices=["none", "low", "medium", "high"], default="medium")
+    parser.add_argument("--warn", help="Print warnings", action='store_true')
+
+    args_ = parser.parse_args()
+
+    return args_
+
+
+args = parse_arguments()
+
+if not args.warn:
+    warnings.filterwarnings('ignore', category=RuntimeWarning, append=True)
+
+if __name__ == "__main__":
+    set_start_method('spawn')
+
+    model = ModelCPU(args.model, args.compression, args.mosaics)
+    parallelize = Parallelize(args.cpu, args.chunk)
+    # fit in parallel
+    parallelize.fit_dir(model, args.input, args.output, args.psf)

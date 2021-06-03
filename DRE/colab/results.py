@@ -1,7 +1,7 @@
 import numpy as np
 from h5py import File
 from astropy.table import QTable, join, vstack
-from astropy.io import fits
+from astropy.io import fits, ascii
 import matplotlib.pyplot as plt
 from astropy.visualization import quantity_support
 from DRE.misc.read_catalog import cat_to_table
@@ -38,11 +38,11 @@ class Result:
         return self.table.loc['ROW', i]
 
     def save(self):
-        self.table.write(f"{self.output_dir}/{self.name}_tab.fits", overwrite=True)
+        ascii.write(table=self.table, output=f"{self.output_dir}/{self.name}.dat", overwrite=True)
 
     def load_summary(self, summary):
-        self.name = os.path.basename(summary).replace('_tab.fits', '')
-        self.table = cat_to_table(summary)
+        self.name = os.path.basename(summary).replace('.fits', '')
+        self.table = QTable(ascii.read(summary))
 
     def load_chi(self, chi_file):
         self.name = os.path.basename(chi_file).replace('_chi.h5', '')

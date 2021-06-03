@@ -1,4 +1,5 @@
 from astropy.table import Table
+from astropy.io import ascii
 from collections import defaultdict
 import os
 
@@ -19,4 +20,4 @@ class Summary:
     def save(self):
         os.makedirs('Summary', exist_ok=True)
         table = Table(self.parameters)
-        table.write(f'Summary/{self.name}_tab.fits', overwrite=True)
+        ascii.write(table=table, output=f"Summary/{self.name}.dat", overwrite=True)

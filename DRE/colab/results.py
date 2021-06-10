@@ -22,8 +22,11 @@ class Result:
         self.cuts = None
         self.psf = None
 
-    def __getitem__(self, item):
-        return self.table.__getitem__(item)
+    def __getitem__(self, key):
+        return self.table.__getitem__(key)
+
+    def __setitem__(self, key, value):
+        return self.table.__setitem__(key, value)
 
     def __repr__(self):
         return self.table.__repr__()

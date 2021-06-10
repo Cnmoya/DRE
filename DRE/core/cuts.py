@@ -1,6 +1,6 @@
 from astropy.io import fits
 from astropy.nddata import Cutout2D
-from scipy.ndimage import shift
+from scipy.ndimage import shift, binary_dilation
 from photutils.centroids import centroid_1dg
 from h5py import File
 import numpy as np
@@ -47,19 +47,27 @@ class Cutter:
                         seg_cut = self.cut_object(seg, row, ext_number)
                         rms_cut = self.cut_object(noise, row, ext_number)
 
-                        seg_mask = seg_cut == row["NUMBER"]
-                        seg_cut[~seg_mask] = 0
-                        seg_cut[seg_mask] = 1
-
+                        # centroid
                         mini_obj = self.cut_object(obj, row, ext_number, size=12)
                         xo, yo = centroid_1dg(mini_obj)
                         x_shift, y_shift = 5.5 - xo, 5.5 - yo
+                        # shift
+                        obj_cut = shift(obj_cut, (y_shift, x_shift))
+                        seg_cut = shift(seg_cut, (y_shift, x_shift))
+                        rms_cut = shift(rms_cut, (y_shift, x_shift))
+
+                        # mask
+                        seg_mask = (seg_cut == row["NUMBER"])
+                        # dilation
+                        dilation = np.ones((5, 5))
+                        seg_cut = binary_dilation(seg_mask, dilation).astype(int)
+
                         h5_group = h5_file.create_group(f"{ext_number:02d}_{row['NUMBER']:04d}")
-                        h5_group.create_dataset('obj', data=shift(obj_cut, (y_shift, x_shift)),
+                        h5_group.create_dataset('obj', data=obj_cut,
                                                 dtype='float32', **self.compression)
-                        h5_group.create_dataset('seg', data=shift(seg_cut, (y_shift, x_shift)),
-                                                dtype='float32', **self.compression)
-                        h5_group.create_dataset('rms', data=shift(rms_cut, (y_shift, x_shift)),
+                        h5_group.create_dataset('seg', data=seg_cut,
+                                                dtype='int32', **self.compression)
+                        h5_group.create_dataset('rms', data=rms_cut,
                                                 dtype='float32', **self.compression)
 
                         progress(j + 1, len(cat), progress_status)

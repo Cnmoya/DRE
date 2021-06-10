@@ -3,6 +3,8 @@ import os
 import numpy as np
 import DRE
 from DRE.misc.h5py_compression import compression_types
+from DRE.misc.interpolation import interpolated_min
+from DRE.core.statistics import gradient_norm, params_std
 
 
 class ModelsCube:
@@ -72,10 +74,19 @@ class ModelsCube:
         e, t, r = np.unravel_index(np.nanargmin(chi_cube), chi_cube.shape)
         min_chi = np.nanmin(chi_cube)
         log_r_chi, log_r_var, log_r_chi_var = self.pond_rad_3d(chi_cube, self.log_r[r])
+        interp_ax_ratio, interp_angle, interp_r = interpolated_min(chi_cube,
+                                                                   (self.ax_ratio, self.angle, self.log_r),
+                                                                   (e, t, r))
+        steps = (self.header["DAXRAT"], self.header["DPOSANG"], self.header["DLOGH"])
+        grad = gradient_norm(chi_cube, (e, t, r), steps)
+        ax_ratio_std, angle_std, log_r_std = params_std(chi_cube, (e, t, r), steps)
+
         parameters = {'R_IDX': r, 'E_IDX': e, 'T_IDX': t,
                       'LOGR': self.log_r[r], 'AX_RATIO': self.ax_ratio[e], 'ANGLE': self.angle[t],
                       'LOGR_CHI': log_r_chi, 'LOGR_VAR': log_r_var, 'LOGR_CHI_VAR': log_r_chi_var,
-                      'CHI': min_chi}
+                      'LOGR_INTERP': interp_r, 'AX_RATIO_INTERP': interp_ax_ratio,
+                      'ANGLE_INTERP': interp_angle, 'LOGR_STD': log_r_std, 'AX_RATIO_STD': ax_ratio_std,
+                      'ANGLE_STD': angle_std, 'CHI': min_chi, 'GRAD': grad}
         return parameters
 
     def make_mosaic(self, data, segment, model_index):

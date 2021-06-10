@@ -31,6 +31,12 @@ def run_sextractor(input_file, args):
     if args.gain:
         sex_config["-GAIN"] = compute_gain(input_file, args)
 
+    if args.zero_point:
+        sex_config["-MAG_ZEROPOINT"] = args.zero_point
+
+    if args.fwhm:
+        sex_config["-SEEING_FWHM"] = args.fwhm
+
     options = [x for item in sex_config.items() for x in item]
     command = ["sex"] + [input_file] + options
     run(command)
@@ -91,6 +97,8 @@ if __name__ == "__main__":
         parser.add_argument('--gain-key', help="Header key for gain if 'counts' or 'cps' are used "
                                                "or 'auto' to search in the header (Def: auto)",
                             type=str, default='auto')
+        parser.add_argument('-zp', '--zero-point', help="Zero-Point Magnitude", type=str)
+        parser.add_argument('-fwhm', help="Value of seeing FWHM", type=str)
 
         args = parser.parse_args()
 

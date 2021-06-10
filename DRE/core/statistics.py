@@ -21,6 +21,6 @@ def cube_hessian(cube, min_index, steps):
 def params_std(chi_cube, min_index, steps):
     info_matrix = -cube_hessian(-np.log(np.sqrt(chi_cube)), min_index, steps)
     cov_matrix = np.linalg.inv(info_matrix)
-    variance = np.diag(cov_matrix)
+    variance = np.array(np.diag(cov_matrix))
     variance[variance < 0] = np.nan
     return np.sqrt(variance)

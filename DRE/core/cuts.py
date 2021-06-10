@@ -1,6 +1,6 @@
 from astropy.io import fits
 from astropy.nddata import Cutout2D
-from scipy.ndimage import shift, binary_dilation
+from scipy.ndimage import shift, binary_dilation, binary_erosion, binary_fill_holes
 from photutils.centroids import centroid_1dg
 from h5py import File
 import numpy as np
@@ -33,6 +33,17 @@ class Cutter:
                         (cat_row["X_IMAGE"] - 1, cat_row["Y_IMAGE"] - 1),
                         size).data.copy()
 
+    @staticmethod
+    def clean_mask(mask, min_size=2):
+        mask = binary_fill_holes(mask)
+        # remove isolated pixels
+        mask = binary_erosion(mask)
+        # add a minimum mask at the center
+        mask[mask.shape[0] // 2 - min_size // 2:mask.shape[0] // 2 + min_size // 2,
+        mask.shape[1] // 2 - min_size // 2:mask.shape[1] // 2 + min_size // 2] = 1
+        mask = binary_dilation(mask, iterations=2)
+        return mask.astype(int)
+
     def cut_image(self, cat, out_name, seg, obj, data, noise, progress_status):
         cut = 0
         with File(out_name, 'w') as h5_file:
@@ -57,10 +68,8 @@ class Cutter:
                         rms_cut = shift(rms_cut, (y_shift, x_shift))
 
                         # mask
-                        seg_mask = (seg_cut == row["NUMBER"])
-                        # dilation
-                        dilation = np.ones((5, 5))
-                        seg_cut = binary_dilation(seg_mask, dilation).astype(int)
+                        seg_cut = (seg_cut == row["NUMBER"])
+                        seg_cut = self.clean_mask(seg_cut)
 
                         h5_group = h5_file.create_group(f"{ext_number:02d}_{row['NUMBER']:04d}")
                         h5_group.create_dataset('obj', data=obj_cut,

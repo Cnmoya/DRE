@@ -1,6 +1,6 @@
 from astropy.io import fits
 from astropy.nddata import Cutout2D
-from scipy.ndimage import shift, binary_dilation, binary_erosion, binary_fill_holes
+from scipy.ndimage import shift, binary_dilation, measurements, binary_fill_holes
 from photutils.centroids import centroid_1dg
 from h5py import File
 import numpy as np
@@ -34,15 +34,19 @@ class Cutter:
                         size).data.copy()
 
     @staticmethod
-    def clean_mask(mask, min_size=2):
-        mask = binary_fill_holes(mask)
-        # remove isolated pixels
-        mask = binary_erosion(mask)
-        # add a minimum mask at the center
+    def clean_mask(mask, min_size=2, dilation=1):
+        # add a minimal mask at the center
         mask[mask.shape[0] // 2 - min_size // 2:mask.shape[0] // 2 + min_size // 2,
         mask.shape[1] // 2 - min_size // 2:mask.shape[1] // 2 + min_size // 2] = 1
-        mask = binary_dilation(mask, iterations=2)
-        return mask.astype(int)
+        # get the central cluster
+        clusters, _ = measurements.label(mask)
+        central_cluster = clusters[mask.shape[0] // 2, mask.shape[1] // 2]
+        mask = (clusters == central_cluster).astype(int)
+        # fill holes
+        mask = binary_fill_holes(mask)
+        # dilation
+        mask = binary_dilation(mask, iterations=dilation)
+        return mask
 
     def cut_image(self, cat, out_name, seg, obj, data, noise, progress_status):
         cut = 0
@@ -62,6 +66,8 @@ class Cutter:
                         mini_obj = self.cut_object(obj, row, ext_number, size=12)
                         xo, yo = centroid_1dg(mini_obj)
                         x_shift, y_shift = 5.5 - xo, 5.5 - yo
+                        if np.abs(x_shift) > 5.5 or np.abs(y_shift) > 5.5:
+                            print(x_shift, y_shift)
                         # shift
                         obj_cut = shift(obj_cut, (y_shift, x_shift))
                         seg_cut = shift(seg_cut, (y_shift, x_shift))

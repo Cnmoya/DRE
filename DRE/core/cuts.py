@@ -37,7 +37,7 @@ class Cutter:
     def clean_mask(mask, min_size=2, dilation=1):
         # add a minimal mask at the center
         mask[mask.shape[0] // 2 - min_size // 2:mask.shape[0] // 2 + min_size // 2,
-        mask.shape[1] // 2 - min_size // 2:mask.shape[1] // 2 + min_size // 2] = 1
+             mask.shape[1] // 2 - min_size // 2:mask.shape[1] // 2 + min_size // 2] = 1
         # get the central cluster
         clusters, _ = measurements.label(mask)
         central_cluster = clusters[mask.shape[0] // 2, mask.shape[1] // 2]
@@ -117,4 +117,3 @@ class Cutter:
             obj.close()
             noise.close()
             data.close()
-

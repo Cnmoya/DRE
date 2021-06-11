@@ -57,6 +57,8 @@ class ModelCPU(ModelsCube):
         with mp.Pool(n_proc) as pool:
             convolved = pool.map(convolve, self.models.reshape(flatten_shape))
         convolved = np.array(list(convolved)).reshape(self.models.shape)
+        # fft convolution has an error that can be grater than the value resulting in negative pixels
+        convolved[convolved < 0] = 0
         self.convolved_models = self.to_shared_mem(convolved)
 
 

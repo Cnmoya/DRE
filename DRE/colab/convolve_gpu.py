@@ -24,8 +24,8 @@ def gpu_fftconvolve(in1, in2, axes=None):
 
     fshape = [next_fast_len(shape[a], True) for a in axes]
 
-    sp1 = cp.fft.rfft2(in1, fshape, axes=axes)
-    sp2 = cp.fft.rfft2(in2, fshape, axes=axes)
+    sp1 = cp.fft.rfft2(in1, fshape, axes=axes, norm='ortho')
+    sp2 = cp.fft.rfft2(in2, fshape, axes=axes, norm='ortho')
 
     ret = cp.fft.irfft2(sp1 * sp2, fshape, axes=axes)
 

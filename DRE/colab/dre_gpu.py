@@ -30,6 +30,8 @@ class ModelGPU(ModelsCube):
         for i in range(self.convolved_models.shape[0]):
             self.convolved_models[i] = gpu_fftconvolve(self.models[i], psf[cp.newaxis, cp.newaxis],
                                                        axes=(-2, -1))
+        # fft convolution has an error that can be grater than the value resulting in negative pixels
+        self.convolved_models[self.convolved_models < 0] = 0
         if to_cpu:
             self.convolved_models = cp.asnumpy(self.convolved_models)
 

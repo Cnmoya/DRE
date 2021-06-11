@@ -13,7 +13,7 @@ def _centered(arr, newshape):
     return arr[tuple(myslice)]
 
 
-def gpu_fftconvolve(in1, in2, axes=None):
+def gpu_fftconvolve(in1, in2, axes=None, norm=None):
     _, axes = _init_nd_shape_and_axes(in1, shape=None, axes=axes)
 
     s1 = in1.shape
@@ -24,10 +24,10 @@ def gpu_fftconvolve(in1, in2, axes=None):
 
     fshape = [next_fast_len(shape[a], True) for a in axes]
 
-    sp1 = cp.fft.rfft2(in1, fshape, axes=axes, norm='ortho')
-    sp2 = cp.fft.rfft2(in2, fshape, axes=axes, norm='ortho')
+    sp1 = cp.fft.rfft2(in1, fshape, axes=axes, norm=norm)
+    sp2 = cp.fft.rfft2(in2, fshape, axes=axes, norm=norm)
 
-    ret = cp.fft.irfft2(sp1 * sp2, fshape, axes=axes, norm='ortho')
+    ret = cp.fft.irfft2(sp1 * sp2, fshape, axes=axes, norm=norm)
 
     fslice = tuple([slice(sz) for sz in shape])
     ret = ret[fslice]

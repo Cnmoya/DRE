@@ -32,7 +32,7 @@ if __name__ == "__main__":
     args = parse_arguments()
 
     if not args.warn:
-        warnings.filterwarnings('ignore', category=UserWarning, append=True)
+        warnings.filterwarnings('ignore', category=Warning, append=True)
 
     cutter = Cutter(args.margin, args.max_stellarity, args.compression)
     cutter.cut_tiles(args.input, args.sextracted, args.output)

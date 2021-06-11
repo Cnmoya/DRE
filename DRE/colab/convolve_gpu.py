@@ -27,7 +27,7 @@ def gpu_fftconvolve(in1, in2, axes=None):
     sp1 = cp.fft.rfft2(in1, fshape, axes=axes, norm='ortho')
     sp2 = cp.fft.rfft2(in2, fshape, axes=axes, norm='ortho')
 
-    ret = cp.fft.irfft2(sp1 * sp2, fshape, axes=axes)
+    ret = cp.fft.irfft2(sp1 * sp2, fshape, axes=axes, norm='ortho')
 
     fslice = tuple([slice(sz) for sz in shape])
     ret = ret[fslice]

@@ -1,4 +1,5 @@
 import cupy as cp
+import cupy
 from opt_einsum import contract_expression
 from h5py import File
 from tqdm import tqdm
@@ -11,7 +12,7 @@ import os
 
 class ModelGPU(ModelsCube):
     def __init__(self, models_file=None, out_compression='none'):
-        super().__init__(models_file, out_compression)
+        super().__init__(models_file, out_compression, backend=cp)
         self.convolved = False
 
         self.to_gpu()
@@ -30,28 +31,8 @@ class ModelGPU(ModelsCube):
         for i in range(self.convolved_models.shape[0]):
             self.convolved_models[i] = gpu_fftconvolve(self.models[i], psf[cp.newaxis, cp.newaxis],
                                                        axes=(-2, -1))
-        # fft convolution has an error that can be grater than the value resulting in negative pixels
-        self.convolved_models[self.convolved_models < 0] = 0
         if to_cpu:
             self.convolved_models = cp.asnumpy(self.convolved_models)
-
-    def dre_fit(self, data, segment, noise):
-        # enviar a la GPU
-        data = cp.array(data)
-        segment = cp.array(segment)
-        noise = cp.array(noise)
-
-        flux_models = self.contract_cube_x_image(self.convolved_models, segment, backend='cupy')
-        flux_data = self.contract_image_x_image(data, segment, backend='cupy')
-        scale = flux_data / flux_models
-        scaled_models = self.contract_scale_x_model(scale, self.convolved_models, backend='cupy')
-        diff = data - scaled_models
-        residual = (diff ** 2) / (scaled_models + noise ** 2)
-        chi = self.contract_cube_x_image(residual, segment, backend='cupy')
-
-        area = segment.sum()
-        chi = chi / area
-        return chi
 
     def fit_file(self, input_file, output_file, psf, progress_status=''):
         self.convolve(psf)
@@ -60,7 +41,7 @@ class ModelGPU(ModelsCube):
         for name in tqdm(names, desc=progress_status, mininterval=0.5):
             with File(input_file, 'r') as input_h5f:
                 data = input_h5f[name]
-                chi = self.dre_fit(data['obj'][:], data['seg'][:], data['rms'][:])
+                chi = self.dre_fit(data['obj'][:], data['seg'][:], data['rms'][:], backend=cupy)
             if not cp.isnan(chi).all():
                 with File(output_file, 'a') as output_h5f:
                     output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),

@@ -81,7 +81,7 @@ class Cutter:
                         h5_group.create_dataset('obj', data=obj_cut,
                                                 dtype='float32', **self.compression)
                         h5_group.create_dataset('seg', data=seg_cut,
-                                                dtype='int32', **self.compression)
+                                                dtype='bool', **self.compression)
                         h5_group.create_dataset('rms', data=rms_cut,
                                                 dtype='float32', **self.compression)
 

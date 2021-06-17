@@ -1,6 +1,7 @@
 from astropy.io import fits
 import os
 import numpy as np
+import numpy
 import DRE
 from DRE.misc.h5py_compression import compression_types
 from DRE.misc.interpolation import interpolated_min
@@ -53,8 +54,24 @@ class ModelsCube:
     def convolve(self, psf_file, *args, **kwargs):
         pass
 
-    def dre_fit(self, data, segment, noise):
-        pass
+    def dre_fit(self, data, segment, noise, backend=numpy):
+        # mask all elements, faster with index for large arrays
+        mask_idx = backend.where(segment)
+        models = self.convolved_models[:, :, :, mask_idx[0], mask_idx[1]]
+        data = data[mask_idx[0], mask_idx[1]]
+        noise = noise[mask_idx[0], mask_idx[1]]
+
+        flux_models = backend.sum(models, axis=-1)
+        flux_data = backend.nansum(data, axis=-1)
+        scale = flux_data / flux_models
+        scaled_models = scale[..., backend.newaxis] * models
+        diff = data - scaled_models
+        residual = (diff ** 2) / (scaled_models + noise ** 2)
+        chi = backend.nansum(residual, axis=-1)
+
+        area = segment.sum()
+        chi = chi / area
+        return chi
 
     def pond_rad_3d(self, chi_cube, log_r_min):
         r_chi = np.sum((10 ** self.log_r) / chi_cube)

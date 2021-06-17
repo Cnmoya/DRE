@@ -4,6 +4,7 @@ from queue import Empty as QueueEmpty
 from threading import Thread
 import ctypes
 import numpy as np
+import numpy
 from scipy.signal import fftconvolve
 from functools import partial
 from h5py import File
@@ -37,28 +38,15 @@ class ModelCPU(ModelsCube):
         shared_array[:] = array
         return shared_array
 
-    def dre_fit(self, data, segment, noise):
-        flux_models = np.einsum("ijkxy,xy->ijk", self.convolved_models, segment)
-        flux_data = np.einsum("xy,xy", data, segment)
-        scale = flux_data / flux_models
-        scaled_models = scale[:, :, :, np.newaxis, np.newaxis] * self.convolved_models
-        diff = data - scaled_models
-        residual = (diff ** 2) / (scaled_models + noise ** 2)
-        chi = np.einsum("ijkxy,xy->ijk", residual, segment)
-
-        area = segment.sum()
-        chi = chi / area
-        return chi
-
     def convolve(self, psf_file, n_proc=1, *args, **kwargs):
         psf = get_psf(psf_file)
         convolve = partial(fftconvolve, in2=psf, mode='same', axes=(-2, -1))
+        # (10, 13, 21, 128, 128) -> (10 * 13 * 21, 128, 128)
         flatten_shape = (np.prod(self.models.shape[:-2]), *self.models.shape[-2:])
         with mp.Pool(n_proc) as pool:
+            # convolve in parallel
             convolved = pool.map(convolve, self.models.reshape(flatten_shape))
         convolved = np.array(list(convolved)).reshape(self.models.shape)
-        # fft convolution has an error that can be grater than the value resulting in negative pixels
-        convolved[convolved < 0] = 0
         self.convolved_models = self.to_shared_mem(convolved)
 
 
@@ -77,7 +65,7 @@ class Parallelize:
     def cpu_worker(model, input_queue, output_queue, terminate):
         try:
             for name, data, segment, noise in iter(input_queue.get, 'STOP'):
-                chi_cube = model.dre_fit(data, segment, noise)
+                chi_cube = model.dre_fit(data, segment, noise, backend=numpy)
                 parameters = None
                 mosaic = None
                 success = not np.isnan(chi_cube).all()

@@ -41,7 +41,10 @@ class ModelGPU(ModelsCube):
         for name in tqdm(names, desc=progress_status, mininterval=0.5):
             with File(input_file, 'r') as input_h5f:
                 data = input_h5f[name]
-                chi = self.dre_fit(data['obj'][:], data['seg'][:], data['rms'][:], backend=cupy)
+                chi = self.dre_fit(cp.array(data['obj'][:]),
+                                   cp.array(data['seg'][:]),
+                                   cp.array(data['rms'][:]),
+                                   backend=cupy)
             if not cp.isnan(chi).all():
                 with File(output_file, 'a') as output_h5f:
                     output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),

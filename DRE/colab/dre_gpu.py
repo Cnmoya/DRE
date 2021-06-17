@@ -12,7 +12,7 @@ import os
 
 class ModelGPU(ModelsCube):
     def __init__(self, models_file=None, out_compression='none'):
-        super().__init__(models_file, out_compression, backend=cp)
+        super().__init__(models_file, out_compression)
         self.convolved = False
 
         self.to_gpu()

@@ -57,7 +57,7 @@ class ModelsCube:
     def dre_fit(self, data, segment, noise, backend=numpy):
         # mask all elements, faster with index for large arrays
         mask_idx = backend.where(segment)
-        models = self.convolved_models[:, :, :, mask_idx[0], mask_idx[1]]
+        models = self.convolved_models[..., mask_idx[0], mask_idx[1]]
         data = data[mask_idx[0], mask_idx[1]]
         noise = noise[mask_idx[0], mask_idx[1]]
 

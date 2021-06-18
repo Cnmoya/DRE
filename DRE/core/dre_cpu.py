@@ -153,7 +153,11 @@ class Parallelize:
         # convolve with the psf
         print(f"{progress_status}: Convolving...")
         start = time.time()
-        model.convolve(psf, n_proc=self.n_proc)
+        try:
+            model.convolve(psf, n_proc=self.n_proc)
+        except FileNotFoundError:
+            print(f"{progress_status}: Warning: Cannot find the PSF file {psf},\n\t skipping this tile")
+            return
         print(f"{progress_status}: Convolved! ({time.time() - start:2.2f}s)")
         # fit in parallel
         start = time.time()

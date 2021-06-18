@@ -41,6 +41,8 @@ if __name__ == "__main__":
     os.chdir(args_.output)
 
     for root, dirs, files in os.walk(os.path.join(args_.cwd, args_.input), topdown=False):
-        for file in files:
+        for file in sorted(files):
             if '_cat.fits' in file:
+                print(60 * "=")
+                print(file)
                 run_psfex(f"{root}/{file}", args_)

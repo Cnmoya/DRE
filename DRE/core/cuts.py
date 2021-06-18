@@ -12,10 +12,12 @@ from DRE.misc.read_catalog import cat_to_table
 
 class Cutter:
 
-    def __init__(self, margin=80, max_stellarity=0.5, compression='none'):
+    def __init__(self, image_size=128, margin=80, max_stellarity=0.5, centroids=False, compression='none'):
 
         self.margin = margin
         self.max_stellarity = max_stellarity
+        self.image_size = image_size
+        self.centroids = centroids
         self.compression = compression_types[compression]
 
     def condition(self, _row, header):
@@ -27,11 +29,10 @@ class Cutter:
         else:
             return False
 
-    @staticmethod
-    def cut_object(fits_data, cat_row, ext_number, size=128):
+    def cut_object(self, fits_data, cat_row, ext_number) -> np.ndarray:
         return Cutout2D(fits_data[ext_number].data,
                         (cat_row["X_IMAGE"] - 1, cat_row["Y_IMAGE"] - 1),
-                        size).data.copy()
+                        self.image_size).data.copy()
 
     @staticmethod
     def clean_mask(mask, min_size=2, dilation=1):
@@ -62,20 +63,15 @@ class Cutter:
                         seg_cut = self.cut_object(seg, row, ext_number)
                         rms_cut = self.cut_object(noise, row, ext_number)
 
-                        # centroid
-                        mini_obj = self.cut_object(obj, row, ext_number, size=12)
-                        xo, yo = centroid_1dg(mini_obj)
-                        x_shift, y_shift = 5.5 - xo, 5.5 - yo
-                        if np.abs(x_shift) > 5.5 or np.abs(y_shift) > 5.5:
-                            print(x_shift, y_shift)
-                        # shift
-                        obj_cut = shift(obj_cut, (y_shift, x_shift))
-                        seg_cut = shift(seg_cut, (y_shift, x_shift))
-                        rms_cut = shift(rms_cut, (y_shift, x_shift))
-
                         # mask
-                        seg_cut = (seg_cut == row["NUMBER"])
-                        seg_cut = self.clean_mask(seg_cut)
+                        seg_cut = self.clean_mask(seg_cut == row["NUMBER"])
+
+                        # centroid + shift
+                        if self.centroids:
+                            x_shift, y_shift = 128/2 - centroid_1dg(obj_cut, mask=~seg_cut)
+                            obj_cut = shift(obj_cut, (y_shift, x_shift))
+                            seg_cut = shift(seg_cut, (y_shift, x_shift))
+                            rms_cut = shift(rms_cut, (y_shift, x_shift))
 
                         h5_group = h5_file.create_group(f"{ext_number:02d}_{row['NUMBER']:04d}")
                         h5_group.create_dataset('obj', data=obj_cut,

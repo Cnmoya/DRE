@@ -78,7 +78,7 @@ if __name__ == "__main__":
     def parse_arguments():
         parser = argparse.ArgumentParser(description='Wrapper for running SExtractor with DRE parameters')
 
-        parser.add_argument('-i', "--input", help="directory with input images to be SExctracted",
+        parser.add_argument('-i', "--input", help="directory with input images to be SExctracted (def: Tiles)",
                             default="Tiles", type=str)
         parser.add_argument('-o', "--output", help="output directory for sextracted data (def: Sextracted)",
                             type=str, default="Sextracted")

@@ -44,7 +44,7 @@ class Result:
         ascii.write(table=self.table, output=f"{self.output_dir}/{self.name}.dat", overwrite=True)
 
     def load_summary(self, summary):
-        self.name = os.path.basename(summary).replace('.fits', '')
+        self.name = os.path.basename(summary).replace('.dat', '')
         self.table = QTable(ascii.read(summary))
 
     def load_chi(self, chi_file):

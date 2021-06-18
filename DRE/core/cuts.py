@@ -12,7 +12,7 @@ from DRE.misc.read_catalog import cat_to_table
 
 class Cutter:
 
-    def __init__(self, image_size=128, margin=80, max_stellarity=0.5, centroids=False, compression='none'):
+    def __init__(self, margin=80, max_stellarity=0.5, centroids=False, compression='none', image_size=128):
 
         self.margin = margin
         self.max_stellarity = max_stellarity

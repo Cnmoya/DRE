@@ -35,7 +35,7 @@ class Cutter:
                         self.image_size).data.copy()
 
     @staticmethod
-    def clean_mask(mask, min_size=2, dilation=1):
+    def clean_mask(mask, min_size=4, dilation=4):
         # add a minimal mask at the center
         mask[mask.shape[0] // 2 - min_size // 2:mask.shape[0] // 2 + min_size // 2,
              mask.shape[1] // 2 - min_size // 2:mask.shape[1] // 2 + min_size // 2] = 1

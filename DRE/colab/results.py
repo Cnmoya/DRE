@@ -142,8 +142,8 @@ class Results:
         self.model = model
         self.output_dir = output_dir
         self.results = []
-        self.total_results_ = Result(self.model, self.output_dir)
-        self.total_results_.name = "Total Results"
+        self.total_results = Result(self.model, self.output_dir)
+        self.total_results.name = "Total Results"
         self.load_results(chi_dir, images_dir, cuts_dir, psf_dir, catalogs_dir, recompute)
 
     def __getitem__(self, item):
@@ -177,10 +177,7 @@ class Results:
         self.set_psf(psf_dir)
         self.set_catalogs(catalogs_dir)
 
-    @property
-    def total_results(self):
-        self.total_results_.table = vstack([result.table for result in self.results])
-        return self.total_results_
+        self.total_results.table = vstack([result.table for result in self.results])
 
     def set_images(self, images_dir):
         for result in self.results:

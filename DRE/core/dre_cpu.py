@@ -144,7 +144,7 @@ class Parallelize:
         self.input_queue.cancel_join_thread()
         self.output_queue.cancel_join_thread()
 
-    def fit_file(self, model, input_name, input_file, output_file, psf, progress_status=''):
+    def fit_file(self, model, input_name, input_file, output_file, psf, cats_dir, progress_status=''):
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
         print(f"{progress_status}: {input_file}\t{len(names)} objects")
@@ -152,29 +152,30 @@ class Parallelize:
         table = Summary(input_name)
         # convolve with the psf
         print(f"{progress_status}: Convolving...")
-        start = time.time()
+        convolve_start = time.time()
         try:
             model.convolve(psf, n_proc=self.n_proc)
         except FileNotFoundError:
             print(f"{progress_status}: Warning: Cannot find the PSF file {psf},\n\t skipping this tile")
             return
-        print(f"{progress_status}: Convolved! ({time.time() - start:2.2f}s)")
+        print(f"{progress_status}: Convolved! ({time.time() - convolve_start:2.2f}s)")
         # fit in parallel
-        start = time.time()
+        job_start = time.time()
         try:
             self.start_processes(model, input_name, names, input_file, output_file, table, progress_status)
             self.stop_processes()
             # save summary
-            table.save()
-            time_delta = time.time() - start
-            obj_s = len(names) / time_delta
-            print(f"\n{progress_status}: finished in {datetime.timedelta(seconds=time_delta)}s ({obj_s:1.3f} obj/s)")
+            table.save(cats_dir)
+            time_delta = datetime.timedelta(seconds=(time.time() - job_start))
+            obj_s = len(names) / (time.time() - job_start)
+            print(f"\n{progress_status}: finished in {str(time_delta)[:10]}s ({obj_s:1.3f} obj/s)")
         except KeyboardInterrupt:
             print("\nAborted by user request")
             self.abort()
 
-    def fit_dir(self, model, input_dir='Cuts', output_dir='Chi', psf_dir='PSF'):
+    def fit_dir(self, model, input_dir='Cuts', output_dir='Chi', psf_dir='PSF', cats_dir='Sextracted'):
         print("Running DRE")
+        start = time.time()
         # list with input files in input_dir
         _, _, files = next(os.walk(input_dir))
         os.makedirs(output_dir, exist_ok=True)
@@ -186,6 +187,9 @@ class Parallelize:
             if os.path.isfile(output_file):
                 os.remove(output_file)
             # fit all cuts in each file
-            self.fit_file(model, name, input_file, output_file, psf, progress_status=f"({i + 1}/{len(files)})")
+            self.fit_file(model, name, input_file, output_file, psf, cats_dir,
+                          progress_status=f"({i + 1}/{len(files)})")
             if self.terminate.is_set():
                 break
+        time_delta = datetime.timedelta(seconds=(time.time() - start))
+        print(f"DRE finished, total time: {str(time_delta)[:10]}s")

@@ -21,7 +21,7 @@ if __name__ == "__main__":
                             default=0.5)
         parser.add_argument("--centroids", help="recompute the centroids using the mask and 2x1D gaussian",
                             action='store_true')
-        parser.add_argument("--compression", help="compresion level for the h5 output file,"
+        parser.add_argument("--compression", help="compression level for the h5 output file,"
                                                   "lower is faster (def: medium)",
                             choices=["none", "low", "medium", "high"], default="medium")
         parser.add_argument("--warn", help="Print warnings", action='store_true')

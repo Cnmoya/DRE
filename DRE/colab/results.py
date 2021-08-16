@@ -13,8 +13,7 @@ quantity_support()
 
 class Result:
 
-    def __init__(self, model, output_dir):
-        self.model = model
+    def __init__(self, output_dir):
         self.output_dir = output_dir
         self.table = QTable()
         self.name = None
@@ -46,8 +45,12 @@ class Result:
     def load_summary(self, summary):
         self.name = os.path.basename(summary).replace('.dat', '')
         self.table = QTable(ascii.read(summary))
+        self.table['ROW'] = np.arange(len(self.table))
+        self.table.add_index('ROW')
+        self.table.add_index('EXT_NUMBER')
+        self.table.add_index('NUMBER')
 
-    def load_chi(self, chi_file):
+    def load_chi(self, chi_file, model):
         self.name = os.path.basename(chi_file).replace('_chi.h5', '')
         parameters = defaultdict(list)
         with File(chi_file, 'r') as chi_h5f:
@@ -60,7 +63,7 @@ class Result:
                 parameters['NUMBER'].append(int(numb))
 
                 chi_cube = chi_h5f[name][:]
-                params = self.model.get_parameters(chi_cube)
+                params = model.get_parameters(chi_cube)
                 for key, value in params.items():
                     parameters[key].append(value)
         self.table = QTable(parameters)
@@ -108,7 +111,7 @@ class Result:
         self.table.add_index('EXT_NUMBER')
         self.table.add_index('NUMBER')
 
-    def make_mosaic(self, i, save=False, mosaics_dir='Mosaics', cmap='gray', **kwargs):
+    def make_mosaic(self, model, i, save=False, mosaics_dir='Mosaics', cmap='gray', **kwargs):
         if self.cuts:
             row = self.row(i)
             cat_number, ext_number = row['NUMBER', 'EXT_NUMBER']
@@ -119,8 +122,8 @@ class Result:
                 data = cuts['obj'][:]
                 segment = cuts['seg'][:]
 
-            self.model.convolve(self.psf, to_cpu=True)
-            mosaic = self.model.make_mosaic(data, segment, (e, t, r))
+            model.convolve(self.psf, to_cpu=True)
+            mosaic = model.make_mosaic(data, segment, (e, t, r))
 
             if save:
                 os.makedirs(mosaics_dir, exist_ok=True)
@@ -137,14 +140,13 @@ class Result:
 
 
 class Results:
-    def __init__(self, model, output_dir='Summary', chi_dir='Chi', images_dir='Tiles', cuts_dir='Cuts',
+    def __init__(self, model=None, output_dir='Summary', chi_dir='Chi', images_dir='Tiles', cuts_dir='Cuts',
                  psf_dir='PSF', catalogs_dir='Sextracted', recompute=False):
-        self.model = model
         self.output_dir = output_dir
         self.results = []
-        self.total_results_ = Result(self.model, self.output_dir)
+        self.total_results_ = Result(self.output_dir)
         self.total_results_.name = "Total Results"
-        self.load_results(chi_dir, images_dir, cuts_dir, psf_dir, catalogs_dir, recompute)
+        self.load_results(model, chi_dir, images_dir, cuts_dir, psf_dir, catalogs_dir, recompute)
 
     def __getitem__(self, item):
         return self.results[item]
@@ -156,26 +158,26 @@ class Results:
         for result in self.results:
             result.save()
 
-    def load_results(self, chi_dir, images_dir, cuts_dir, psf_dir, catalogs_dir, recompute):
+    def load_results(self, model, chi_dir, images_dir, cuts_dir, psf_dir, catalogs_dir, recompute):
         if os.path.isdir(self.output_dir) and not recompute:
             print(f"loading results from {self.output_dir}")
             _, _, files = next(os.walk(self.output_dir))
             for summary_file in sorted(files):
-                result = Result(self.model, self.output_dir)
+                result = Result(self.output_dir)
                 result.load_summary(f"{self.output_dir}/{summary_file}")
                 self.results.append(result)
         else:
             print(f"loading results from {chi_dir}")
             _, _, files = next(os.walk(chi_dir))
             for chi_file in sorted(files):
-                result = Result(self.model, self.output_dir)
-                result.load_chi(f"{chi_dir}/{chi_file}")
+                result = Result(self.output_dir)
+                result.load_chi(f"{chi_dir}/{chi_file}", model)
                 self.results.append(result)
+            self.set_catalogs(catalogs_dir)
 
         self.set_images(images_dir)
         self.set_cuts(cuts_dir)
         self.set_psf(psf_dir)
-        self.set_catalogs(catalogs_dir)
 
     @property
     def total_results(self):

@@ -90,18 +90,18 @@ class Cutter:
         os.makedirs(output, exist_ok=True)
         for i, filename in enumerate(sorted(files)):
             name, _ = os.path.splitext(os.path.split(filename)[1])
-            if os.path.isdir(f"{sextracted}/{name}"):
-                basename = f"{sextracted}/{name}/{name}"
+            if os.path.isdir(os.path.join(sextracted, name)):
+                basename = os.path.join(sextracted, name, name)
             else:
-                basename = f"{sextracted}/{name}"
+                basename = os.path.join(sextracted, name)
 
             seg = fits.open(f"{basename}_seg.fits")
             obj = fits.open(f"{basename}_nb.fits")
             noise = fits.open(f"{basename}_rms.fits")
-            data = fits.open(f"{tiles}/{name}.fits")
+            data = fits.open(os.path.join(tiles, f"{name}.fits"))
             cat = cat_to_table(f"{basename}_cat.fits")
 
-            out_name = f"{output}/{name}_cuts.h5"
+            out_name = os.path.join(output, f"{name}_cuts.h5")
             if os.path.isfile(out_name):
                 os.remove(out_name)
             progress_status = f"({i + 1}/{len(files)})"

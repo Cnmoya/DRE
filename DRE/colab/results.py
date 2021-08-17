@@ -40,7 +40,7 @@ class Result:
         return self.table.loc['ROW', i]
 
     def save(self):
-        ascii.write(table=self.table, output=f"{self.output_dir}/{self.name}.dat", overwrite=True)
+        ascii.write(table=self.table, output=os.path.join(self.output_dir, f"{self.name}.dat"), overwrite=True)
 
     def load_summary(self, summary):
         self.name = os.path.basename(summary).replace('.dat', '')
@@ -117,7 +117,7 @@ class Result:
             cat_number, ext_number = row['NUMBER', 'EXT_NUMBER']
             e, t, r = row['E_IDX', 'T_IDX', 'R_IDX']
 
-            with File(f"{self.cuts}/{self.name}_cuts.h5", 'r') as cuts_h5f:
+            with File(os.path.join(self.cuts, f"{self.name}_cuts.h5"), 'r') as cuts_h5f:
                 cuts = cuts_h5f[f'{ext_number:02d}_{cat_number:04d}']
                 data = cuts['obj'][:]
                 segment = cuts['seg'][:]
@@ -128,7 +128,8 @@ class Result:
             if save:
                 os.makedirs(mosaics_dir, exist_ok=True)
                 mosaic_fits = fits.ImageHDU(data=mosaic)
-                mosaic_fits.writeto(f"{mosaics_dir}/{self.name}_{ext_number:02d}_{cat_number:04d}_mosaic.fits",
+                mosaic_fits.writeto(os.path.join(mosaics_dir,
+                                                 f"{self.name}_{ext_number:02d}_{cat_number:04d}_mosaic.fits"),
                                     overwrite=True)
             else:
                 plt.figure(figsize=(15, 5))
@@ -164,14 +165,14 @@ class Results:
             _, _, files = next(os.walk(self.output_dir))
             for summary_file in sorted(files):
                 result = Result(self.output_dir)
-                result.load_summary(f"{self.output_dir}/{summary_file}")
+                result.load_summary(os.path.join(self.output_dir, summary_file))
                 self.results.append(result)
         else:
             print(f"loading results from {chi_dir}")
             _, _, files = next(os.walk(chi_dir))
             for chi_file in sorted(files):
                 result = Result(self.output_dir)
-                result.load_chi(f"{chi_dir}/{chi_file}", model)
+                result.load_chi(os.path.join(chi_dir, chi_file), model)
                 self.results.append(result)
             self.set_catalogs(catalogs_dir)
 
@@ -186,7 +187,7 @@ class Results:
 
     def set_images(self, images_dir):
         for result in self.results:
-            result.image = f"{images_dir}/{result.name}.fits"
+            result.image = os.path.join(images_dir, f"{result.name}.fits")
 
     def set_cuts(self, cuts_dir):
         for result in self.results:
@@ -194,14 +195,14 @@ class Results:
 
     def set_psf(self, psf_dir):
         for result in self.results:
-            result.psf = f"{psf_dir}/{result.name}.psf"
+            result.psf = os.path.join(psf_dir, f"{result.name}.psf")
 
     def set_catalogs(self, catalogs_dir):
         for result in self.results:
-            if os.path.isdir(f"{catalogs_dir}/{result.name}"):
-                cat_file = f"{catalogs_dir}/{result.name}/{result.name}_cat.fits"
+            if os.path.isdir(os.path.join(catalogs_dir, result.name)):
+                cat_file = os.path.join(catalogs_dir, result.name, f"{result.name}_cat.fits")
             else:
-                cat_file = f"{catalogs_dir}/{result.name}_cat.fits"
+                cat_file = os.path.join(catalogs_dir, f"{result.name}_cat.fits")
             cat = cat_to_table(cat_file)
             result.join_catalog(cat)
 

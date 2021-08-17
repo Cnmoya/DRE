@@ -55,10 +55,10 @@ class ModelGPU(ModelsCube):
         _, _, files = next(os.walk(input_dir))
         os.makedirs(output_dir, exist_ok=True)
         for i, filename in enumerate(sorted(files)):
-            input_file = f"{input_dir}/{filename}"
+            input_file = os.path.join(input_dir, filename)
             name = os.path.basename(filename).replace('_cuts.h5', '')
-            output_file = f"{output_dir}/{name}_chi.h5"
-            psf = f"{psf_dir}/{name}.psf"
+            output_file = os.path.join(output_dir, f"{name}_chi.h5")
+            psf = os.path.join(psf_dir, f"{name}.psf")
             if os.path.isfile(output_file):
                 os.remove(output_file)
             # fit all cuts in each file

@@ -21,11 +21,11 @@ class Summary:
     def save(self, catalogs_dir='Sextracted'):
         os.makedirs('Summary', exist_ok=True)
         table = Table(self.parameters)
-        if os.path.isdir(f"{catalogs_dir}/{self.name}"):
-            cat_file = f"{catalogs_dir}/{self.name}/{self.name}_cat.fits"
+        if os.path.isdir(os.path.join(catalogs_dir, self.name)):
+            cat_file = os.path.join(catalogs_dir, self.name, f"{self.name}_cat.fits")
         else:
-            cat_file = f"{catalogs_dir}/{self.name}_cat.fits"
+            cat_file = os.path.join(catalogs_dir, f"{self.name}_cat.fits")
         table = join(table, cat_to_table(cat_file), join_type='inner')
         if 'VIGNET' in table.colnames:
             table.remove_column('VIGNET')
-        ascii.write(table=table, output=f"Summary/{self.name}.dat", overwrite=True)
+        ascii.write(table=table, output=os.path.join("Summary", f"{self.name}.dat"), overwrite=True)

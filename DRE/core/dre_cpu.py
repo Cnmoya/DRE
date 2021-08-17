@@ -109,9 +109,9 @@ class Parallelize:
                         output_h5f.create_dataset(f'{name}', data=chi_cube,
                                                   dtype='float32', **model.compression)
                     if model.save_mosaics:
-                        os.makedirs(f"Mosaics/{input_name}", exist_ok=True)
+                        os.makedirs(os.path.join("Mosaics", input_name), exist_ok=True)
                         mosaic_fits = fits.ImageHDU(data=mosaic)
-                        mosaic_fits.writeto(f"Mosaics/{input_name}/{input_name}_{name}_mosaic.fits",
+                        mosaic_fits.writeto(os.path.join("Mosaics", input_name, f"{input_name}_{name}_mosaic.fits"),
                                             overwrite=True)
                 self.output_queue.task_done()
                 completed += 1
@@ -180,10 +180,10 @@ class Parallelize:
         _, _, files = next(os.walk(input_dir))
         os.makedirs(output_dir, exist_ok=True)
         for i, filename in enumerate(sorted(files)):
-            input_file = f"{input_dir}/{filename}"
+            input_file = os.path.join(input_dir, filename)
             name = os.path.basename(filename).replace('_cuts.h5', '')
-            output_file = f"{output_dir}/{name}_chi.h5"
-            psf = f"{psf_dir}/{name}.psf"
+            output_file = os.path.join(output_dir, f"{name}_chi.h5")
+            psf = os.path.join(psf_dir, f"{name}.psf")
             if os.path.isfile(output_file):
                 os.remove(output_file)
             # fit all cuts in each file

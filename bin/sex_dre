@@ -106,7 +106,7 @@ if __name__ == "__main__":
 
     args_ = parse_arguments()
 
-    _, _, files = next(os.walk(args_.input))
+    files = os.listdir(args_.input)
     for file in sorted(files):
         print(60 * "=")
         print(file)

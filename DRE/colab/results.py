@@ -162,14 +162,14 @@ class Results:
     def load_results(self, model, chi_dir, images_dir, cuts_dir, psf_dir, catalogs_dir, recompute):
         if os.path.isdir(self.output_dir) and not recompute:
             print(f"loading results from {self.output_dir}")
-            _, _, files = next(os.walk(self.output_dir))
+            files = os.listdir(self.output_dir)
             for summary_file in sorted(files):
                 result = Result(self.output_dir)
                 result.load_summary(os.path.join(self.output_dir, summary_file))
                 self.results.append(result)
         else:
             print(f"loading results from {chi_dir}")
-            _, _, files = next(os.walk(chi_dir))
+            files = os.listdir(chi_dir)
             for chi_file in sorted(files):
                 result = Result(self.output_dir)
                 result.load_chi(os.path.join(chi_dir, chi_file), model)

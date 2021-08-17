@@ -52,7 +52,7 @@ class ModelGPU(ModelsCube):
 
     def fit_dir(self, input_dir='Cuts', output_dir='Chi', psf_dir='PSF'):
         # list with input files in input_dir
-        _, _, files = next(os.walk(input_dir))
+        files = os.listdir(input_dir)
         os.makedirs(output_dir, exist_ok=True)
         for i, filename in enumerate(sorted(files)):
             input_file = os.path.join(input_dir, filename)

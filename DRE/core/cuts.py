@@ -86,6 +86,7 @@ class Cutter:
         print(f"\n{progress_status}: {cut} cuts")
 
     def cut_tiles(self, tiles='Tiles', sextracted='Sextracted', output='Cuts'):
+        # walk directory recursively
         _, _, files = next(os.walk(tiles))
         os.makedirs(output, exist_ok=True)
         for i, filename in enumerate(sorted(files)):

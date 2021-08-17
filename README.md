@@ -1,21 +1,19 @@
-# DRE
-Discrete Radius Ellipticals
+# DRE: Discrete Radius Ellipticals
 
 Contenidos
 ==========
 
 <!--ts-->
-* [Acerca de]
-* [Notas de la version]
-* [Requerimientos]
-* [Instalacion]
-* [Como usar DRE]
-  * [Preprocesamiento]
-  * [Recotes]
-  * [Ejecutar DRE]
-    * [Localmente (CPU)]
-    * [En Colab (GPU)]
-* [Directorio de trabajo]
+* [About]
+* [Version Notes]
+* [Requirements]
+* [Installation]
+* [How to use DRE]
+  * [Preprocessing]
+  * [Executing DRE]
+    * [Locally (CPU)]
+    * [In Colab (GPU)]
+* [Working directory]
 * [Scripts]
   * [sex_dre]
   * [psfex_dre]
@@ -23,99 +21,93 @@ Contenidos
   * [dre]
 <!--te-->
 
-## Acerca de
-descripción...
+## About
+A python program to fit elliptical galaxies (De Vaucouleurs's profile) in astronomical images, 
+it seeks to be a fast and efficient program using a set of precalculated models and CPU/GPU acceleration.
 
-## Notas de la version
-* DRE es instalable via pip (localmente).
-* Se incluyen scipts para SExtractor, los cortes y correr DRE con cpu.
-* Se puede correr de forma interactiva con Colab.  
-* Corrección en la forma de calcular chi cuadrado.
+## Version Notes
+*  Fits a parabola to the residuals to find a minimum by interpolation
 
-## Requerimientos
-DRE requiere los siguientes paquetes de python que serán instalados automáticamente al instalar DRE con PIP:
+## Requirements
+DRE requieres the following python packages that will be installed automatically when installing DRE with PIP:
 * Numpy
 * Scipy
 * Astropy
 * Photutils
 * H5Py
 
-Para correr DRE con GPU se requieren adicionalmente:
+For running DRE with GPU it also requires:
 * Cupy
-* opt-einsum
-Pero no es necesario instalarlos si usas DRE a través de Google Colab.
+But a local installation is not needed if running on Google Colab.
 
-Para el preprocesamiento y para obtener la PSF se requieren:
+For the preprocessing and to obtain the PSF:
 * SExtractor
 * PSFex
 
-## Instalacion
+## Installation
 
-Primero clona esta repo:
+First clone this repo:
 ```
 git clone https://github.com/Cnmoya/DRE.git
 ```
-Puedes hacer las modificaciones que quieras antes de instalarlo. Para instalar desde la copia local:
+You can make any modification at this point. To install it:
 ```
-pip install ./DRE
+pip install --use-feature=in-tree-build ./DRE
 ```
 
-Nota: Los modelos que se encuentran en `DRE/DRE/models` no se descargarán con `git clone` a menos que tengas instalado
-[git-lfs](https://git-lfs.github.com/) para el soporte de archivos pesados, si no puedes instalar git-lfs
-puedes descargar el repositorio como zip o clonarlo y luego copiar un archivo de modelos a `DRE/DRE/models` antes de la instalación.
+Note: The models files in `DRE/DRE/models` will not be downloaded with `git clone` at least you have installed
+[git-lfs](https://git-lfs.github.com/) for large files support, if you can't install git-lfs
+you can download de repo as zip file.
 
-# Como usar DRE
+# How to use DRE
 
-El procedimiento general para ejecutar DRE es:
+The general procedure for running DRE is:
 `Images -> Sextractor -> PSFex -> Cuts -> DRE`
 
-### Preprocesamiento
-DRE requiere los resultados de [SExtractor](https://sextractor.readthedocs.io/en/stable/) para extraer las fuentes y 
-separar estrellas de galaxias, en particular requiere las imágenes de chequeo `-BACKGROUND`, `BACKGROUND_RMS` y `SEGMENTATION`, 
-y los parámetros `X_IMAGE`, `Y_IMAGE` y `CLASS_STAR`.
+### Preprocessing
+DRE requires the results of [SExtractor](https://sextractor.readthedocs.io/en/stable/) to extract the sources and 
+separate stars from galaxies, in particular requires the check images `-BACKGROUND`, `BACKGROUND_RMS` y `SEGMENTATION`, 
+and the `X_IMAGE`, `Y_IMAGE` and `CLASS_STAR` parameters, the catalogs should be in fits format.
 
-Además requiere una PSF para la imagen de entrada, esta puede ser extraída con
-[PSFex](https://psfex.readthedocs.io/en/latest/GettingStarted.html), es importante que esta tenga un valor de `PSF_STEP = 1` para que su
-resolución sea la misma de la imagen. DRE usará la PSF a orden 0, por lo que no es necesario calcularla a un orden mayor.
+It also requires a PSF for the input image, this can be extracted with
+[PSFex](https://psfex.readthedocs.io/en/latest/GettingStarted.html), is important to set `PSF_STEP = 1` in the
+configuration so that its resolution is the same as the image. DRE will use the PSF to order 0, 
+so it is not necessary to calculate it to a higher order.
 
-Para facilitar este procedimiento DRE incluye los scripts `sex_dre` y `psfex_dre` (más información en la sección de scripts).
+To facilitate this procedure, DRE includes the scripts `sex_dre` y `psfex_dre` (more information in the [scripts] section).
 
-## Recortes
-Una vez se tienen los catálogos de SExtractor se deben realizar recortes de los objetos extraídos, los segmentos y el ruido.
-Para esto se puede usar el script `make_cuts` que genera recortes de $128x128$ pixeles centrados en el objeto y los guarda en un archivo HDF5.
+## Cuts
+Once you have the SExtractor catalogs, you must cut out the extracted objects, the segments and the noise.
+For this you can use the script `make_cuts` which generates cutouts of 128x128 pixels centered on the object and saves them to an HDF5 file.
 
-## Ejecutar DRE
-Finalmente para ejecutar DRE puedes hacerlo de dos formas:
+## Executing DRE
+Finally, to run DRE you can do it in two ways:
 
-### Localmente (CPU)
-Puedes ejecutar DRE en paralelo con el script `dre`, esta opción es conveniente si deseas ejecutarlo de forma prolongada sobre una lista muy extensa de archivos
+### Locally (CPU)
+You can run DRE in parallel with the `dre` script, this option is convenient if you want to run it for a long time on a very long list of files.
 
-### En Colab (GPU)
-DRE también puede usar aceleración por GPU con CUDA, esta opción permite cálculos a una mayor velocidad que por CPU. La mejor forma de hacerlo es usando
-la plataforma Google Colab, que permite ejecutar Python de forma interactiva en un servidor de Google. Esta opción es conveniente para realizar cálculos rápidamente
-y analizar los resultados en la misma plataforma, pero el inconveniente es que en la versión gratuita de Colab los tiempos para GPU son limitados.
+### In Colab (GPU)
+DRE can also use GPU acceleration with CUDA, this option allows calculations at a higher speed than CPU. 
+DRE can be used with Google Colab platform, which allows you to run Python interactively on a Google server. 
+This option is convenient to perform calculations quickly and analyze the results on the same platform, 
+but the downside is that the Colab times for GPUs are limited.
 
-Como ejemplo de como usar DRE en Colab puedes ver el siguiente notebook:
+As an example of how to use DRE in Colab you can see the following notebook:
 <a href="https://colab.research.google.com/github/Cnmoya/DRE/blob/master/Example/DRE_Example.ipynb" target="_blank" rel="noopener noreferrer">
   <img src="https://colab.research.google.com/assets/colab-badge.svg" alt="Open In Colab"/>
 </a>
 
-## Directorio de trabajo
-Para facilitar la automatización DRE realiza los cálculos sobre todos los archivos en un directorio, a continuación se muestra un ejemplo de la estructura
-del directorio de trabajo que se obtiene al ejecutar DRE con los parámetros por defecto, donde `Tiles` contiene las imágenes de ciencia, `Sextracted` los resultados
-de ejecutar `sex_dre`, `PSF` los resultados de ejecutar `psfex_dre`, `Cuts` los recortes de `make_cuts` y `Chi`, `Summary` y `Mosaics` los resultados de `dre`.
+## Working directory
+For automation DRE performs calculations on all files in a directory, below there is an example of the structure 
+of the working directory that is obtained when executing DRE with the default parameters, where `Tiles` contains the science images, `Sextracted` the 
+results of executing `sex_dre`, `PSF` the results of `psfex_dre`, `Cuts` of `make_cuts` and `Chi`, `Summary` and `Mosaics` the results of `dre`.
 
-Los archivos correspondientes a una imagen de ciencia tendrán el mismo nombre pero cambiando el sufjo `_xxx` o la extensión.
+All the resulting files for a science image will have se same name but with a different suffix `_xxx` or extension.
 ```markdown
 .
 ├── Tiles
 │   ├── image1.fits
 │   └── image2.fits
-├── sex_source
-│   ├── default.nnw
-│   ├── default.param
-│   ├── default.sex
-│   └── default.psfex
 ├── Sextracted
 │   ├── image1
 │   │   ├── image1_cat.fits   # SExtractor catalog
@@ -137,8 +129,8 @@ Los archivos correspondientes a una imagen de ciencia tendrán el mismo nombre p
 │   ├── image1_chi.h5
 │   └── image2_chi.h5
 ├── Summary
-│   ├── image1_tab.fits
-│   └── image2_tab.fits
+│   ├── image1.dat
+│   └── image2.dat
 └── Mosaics
     ├── image1
     │   ├── image1_00_0001_mosaic.fits   
@@ -151,19 +143,16 @@ Los archivos correspondientes a una imagen de ciencia tendrán el mismo nombre p
 ```
 
 ## Scripts
-La instalación de DRE incluye los siguientes scripts:
+DRE includes the following scripts:
 *  `sex_dre`
 *  `psfex_dre`
 *  `make_cuts`
 *  `dre`
 
-Serán añadidos al directorio `/bin` de tu environment en la instalación por lo que podrás usarlos directamente desde el terminal.
-Todos ellos incluyen una opción `-h`/`--help` con una descripción de todas sus opciones. Estos scipts están diseñados para usarse directamente si usas la
-estructura de trabajo presentada anteriormente, pero puedes cambiar los nombres de los directorios con los argumentos si lo deseas.
+Will be added to the `/bin` directory of the python environment, so you can use them from the terminal. You can use the `-h`/`--help` parameter to display all options. 
 
 ### sex_dre
-Permite ejecutar SExtractor en todo el directorio `Tiles` de forma secuencial usando un mismo archivo de configuración y generando los archivos en el formato  
-adecuado para DRE.
+Runs SExtractor on all files in the `Tiles` directory with the same configuration.
 ```
 $ sex_dre --help
 usage: sex_dre [-h] [-i INPUT] [-o OUTPUT] [-c CONFIG] [--subdir] [--flags FLAGS] [--weights WEIGHTS] [--gain GAIN] [--gain-key GAIN_KEY]
@@ -184,17 +173,18 @@ optional arguments:
   --gain GAIN           Can be 'counts' to read from the header and it as GAIN, 'cps' to read from the header and use GAIN*EXPOSURE_TIME, or a float in e-/ADU to be used directly as GAIN
   --gain-key GAIN_KEY   Header key for gain if 'counts' or 'cps' are used or 'auto' to search in the header (Def: auto)
 ```
-Si se requiere pasar imágenes adicionales como Flags o Weight Maps puede hacerse con los parámetros correspondientes usando la misma estructura para esos directorios.
-Además permite calcular la ganancia de cada imagen a partir de los valores del header.
+If it is required to pass additional images such as Flags or Weight Maps, 
+it can be done with the corresponding parameters using the same structure for those directories. 
+It also allows to calculate the gain of each image from the header values.
 
-Por ejemplo para ejecutar `sex_dre` en `Tiles` calculando la ganancia para imágenes en cuentas por segundo (`gain * exposure_time`),
-usando el archivo de configuración `sex_source/default.sex`, desde la raíz del directorio de trabajo ejecuta:
+For example to run `sex_dre` on` Tiles` calculating the gain for images in counts per second (`gain * exposure_time`),
+Using the configuration file `sex_source/default.sex`, from the root of the working directory execute:
 ```
 $ sex_dre -c sex_source/default.sex --gain cps
 ```
 
 ### psfex_dre
-Funciona de manera similar a `sex_dre`
+Extracts a PSF for every SExtractor catalog.
 ```
 $  psfex_dre --help
 usage: psfex_dre [-h] [-i INPUT] [-o OUTPUT] [-c CONFIG]
@@ -213,9 +203,8 @@ optional arguments:
 ```
 
 ### make_cuts
-Realiza los recortes a partir de los catálogos de SExtractor, se puede controlar el parámetro
-de estelaridad para excluir estrellas, un margen para descartar los objetos en el borde de la imagen
-y el grado de compresión de los archivos HDF5 de salida.
+It makes cuts from SExtractor catalogs, you can control the stelarity parameter to exclude stars, 
+a margin to discard objects at the edge of the image, and the degree of compression of the output HDF5 files.
 
 ```
 $ make_cuts --help
@@ -241,9 +230,8 @@ optional arguments:
 ```
 
 ### dre
-Ejecuta el ajuste de DRE sobre los recortes, para cada imagen realiza una convolución del modelo con la PSF
-correspondiente antes del ajuste. Permite además ejecutarlo en paralelo con el argumento `--cpu`
-y controlar el grado de compresión de los archivos HDF5 de salida.
+Runs the DRE fit over each object cut, for each image it performs a convolution of the model with the corresponding PSF before the fit. 
+It also allows executing it in parallel with the `--cpu` argument and controlling the degree of compression of the output HDF5 files.
 
 ```
 $ dre --help
@@ -270,28 +258,28 @@ optional arguments:
 
 ```
 
-Por ejemplo podemos ejecutar DRE con 4 cpu's y generar mosaicos con el siguiente comando:
+For example, to run DRE with 4 CPU's and generate mosaics to visualize the resulting model and
+the residual:
 ```
 $ dre --cpu 4 --mosaics
 ```
 
-Nota: La instalación (por ahora) no incluirá los modelos a menos que tengas instalado [git-lfs](https://git-lfs.github.com/)
-por lo que si no los añades manualmente antes de la instalación tendrás que darle el archivo de modelos como argumento, por ejemplo:
+Note: The installation will not include the models unless you have installed [git-lfs](https://git-lfs.github.com/)
+so if you don't add them manually before installation you have to pass the models file as an argument, for example:
 ```
 $ dre -m modelbulge.fits
 ```
 
-[Acerca de]: #acerca-de
-[Notas de la version]: #notas-de-la-version
-[Instalacion]: #instalacion
-[Como usar DRE]: #como-usar-dre
-[Requerimientos]: #requerimientos
-[Preprocesamiento]: #preprocesamiento
-[Recotes]: #recortes
-[Ejecutar DRE]: #ejecutar-dre
-[Localmente (CPU)]: #localmente-cpu
-[En Colab (GPU)]: #en-colab-gpu
-[Directorio de trabajo]: #directorio-de-trabajo
+[About]: #about
+[Version Notes]: #version-notes
+[Requirements]: #requirements
+[Installation]: #installation
+[How to use DRE]: #how-to-use-dre
+[Preprocessing]: #preprocessing
+[Executing DRE]: #executing-dre
+[Locally (CPU)]: #locally-cpu
+[In Colab (GPU)]: #in-colab-gpu
+[Working directory]: #working-directory
 [Scripts]: #scripts
 [sex_dre]: #sex_dre
 [psfex_dre]: #psfex_dre

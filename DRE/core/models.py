@@ -15,15 +15,13 @@ class ModelsCube:
     Attributes
     ----------
     models : ndarray
-        numpy/cupy array with the cube of models, the axes are sorted as (ax_ratio, angle, radius, x_image, y_image)
+        numpy/cupy array with the cube of models, the axes are sorted as (ax_ratio, angle, log_r, x_image, y_image)
     convolved_models : ndarray
         numpy/cupy array with the cube of models convolved with a PSF
     header : dict
         astropy header of the models fits file
     original_shape : tuple
-        shape of the models as saved in the fits file (ax_ratio, angle x x_image, radius x y_image)
-    shape : tuple
-        shape of the models as used inside DRE (ax_ratio, angle, radius, x_image, y_image)
+        shape of the models as saved in the fits file (ax_ratio, angle x x_image, log_r x y_image)
     log_r : ndarray
         numpy array with the log_r axis
     angle : ndarray
@@ -32,6 +30,7 @@ class ModelsCube:
         numpy array with the ax_ratio axis
     compression : dict
         dictionary with arguments for H5Py compression
+
 
     Methods
     -------
@@ -72,6 +71,8 @@ class ModelsCube:
         self.log_r = None
         self.angle = None
         self.ax_ratio = None
+        self.x_image = None
+        self.y_image = None
 
         self.compression = compression_types[out_compression]
 
@@ -93,6 +94,26 @@ class ModelsCube:
         """
         return self.models.shape
 
+    @property
+    def axes_names(self):
+        """
+        Returns
+        -------
+        tuple
+            name of each axis
+        """
+        return 'ax_ratio', 'angle', 'log_r', 'x_image', 'y_image'
+
+    @property
+    def axes(self):
+        """
+        Returns
+        -------
+        tuple
+            arrays of each axis
+        """
+        return self.ax_ratio, self.angle, self.log_r, self.x_image, self.y_image
+
     def load_models(self, models_file):
         """
         loads the models fits file and reshapes it, also loads the header and computes the axes
@@ -102,19 +123,25 @@ class ModelsCube:
         models_file : str
             the path to the fits file with the models
         """
+        self.header = fits.getheader(models_file)
 
         cube = fits.getdata(models_file).astype('float')
         self.original_shape = cube.shape
-        cube = cube.reshape(10, 13, 128, 21, 128)
+        cube = cube.reshape(self.header["NAXRAT"], self.header["NPOSANG"],
+                            self.header["BOXSIZE"], self.header["NLOGH"],
+                            self.header["BOXSIZE"])
+        # swap log_r and x_image
         cube = cube.swapaxes(2, 3)
         self.models = cube
-        self.header = fits.getheader(models_file)
+
         self.log_r = np.arange(self.header["NLOGH"]) * self.header["DLOGH"] + self.header["LOGH0"]
         self.angle = np.arange(self.header["NPOSANG"]) * self.header["DPOSANG"] + self.header["POSANG0"]
         self.ax_ratio = np.arange(self.header["NAXRAT"]) * self.header["DAXRAT"] + self.header["AXRAT0"]
+        self.x_image = np.arange(self.header["BOXSIZE"])
+        self.y_image = np.arange(self.header["BOXSIZE"])
 
     def save_models(self, output_file):
-        """
+        """128
         saves the models into a fits file at the specified directory
 
         Parameters
@@ -273,10 +300,10 @@ class ModelsCube:
         flux_model = np.einsum("xy,xy", model, segment)
         flux_data = np.einsum("xy,xy", data, segment)
         scaled_model = (flux_data / flux_model) * model
-        mosaic = np.zeros((4, 128, 128))
+        mosaic = np.zeros((4, len(self.x_image), len(self.y_image)))
         mosaic[0] = data
         mosaic[1] = segment * (flux_data / segment.sum())
         mosaic[2] = scaled_model
         mosaic[3] = data - scaled_model
-        mosaic = mosaic.reshape(128 * 4, 128).T
+        mosaic = mosaic.reshape(len(self.x_image) * 4, len(self.y_image)).T
         return mosaic

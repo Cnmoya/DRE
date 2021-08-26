@@ -12,19 +12,29 @@ from DRE.misc.read_catalog import cat_to_table
 
 class Cutter:
 
-    def __init__(self, margin=80, max_stellarity=0.5, centroids=False, compression='none', image_size=128):
+    def __init__(self, margin=80, max_stellarity=0.5, filters=None, centroids=False,
+                 compression='none', image_size=128):
 
         self.margin = margin
         self.max_stellarity = max_stellarity
         self.image_size = image_size
         self.centroids = centroids
         self.compression = compression_types[compression]
+        if filters is None:
+            self.extra_filters = []
+        else:
+            self.extra_filters = filters
 
     def condition(self, _row, header):
+        conditions = []
         inside_x = self.margin < _row['X_IMAGE'] < header['NAXIS1'] - self.margin
         inside_y = self.margin < _row["Y_IMAGE"] < header['NAXIS2'] - self.margin
         is_galaxy = _row['CLASS_STAR'] < self.max_stellarity
-        if inside_x and inside_y and is_galaxy:
+        conditions.extend([inside_x, inside_y, is_galaxy])
+        for param, _min, _max in self.extra_filters:
+            new_condition = float(_min) < _row[param] < float(_max)
+            conditions.append(new_condition)
+        if all(conditions):
             return True
         else:
             return False
@@ -55,7 +65,7 @@ class Cutter:
             for j, row in enumerate(cat):
                 ext_number = row['EXT_NUMBER'] if 'EXT_NUMBER' in row.keys() else 0
                 if self.condition(row, data[ext_number].header):
-                    # este es para filtrar los nan (ocultos por sextractor)
+                    # filters the data that contains nan's
                     data_cut = self.cut_object(data, row, ext_number)
                     if not np.isnan(np.sum(data_cut)):
                         # cortes

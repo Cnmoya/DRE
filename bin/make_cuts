@@ -17,11 +17,16 @@ if __name__ == "__main__":
         parser.add_argument("--margin", help="margin to exclude objects near the borders of the image (def: 80)",
                             type=int, default=80)
         parser.add_argument("--max-stellarity",
-                            help="maximum SExtractor 'CLASS_STAR' stelarity to be considered a galaxy (def: 0.5)",
+                            help="maximum SExtractor 'CLASS_STAR' stellarity to be considered a galaxy (def: 0.5)",
                             default=0.5)
+        parser.add_argument("-f", "--filter", type=str, nargs='+', action='append',
+                            help="filter the data given a condition. "
+                                 "The format must be 'parameter min_value max_value' "
+                                 "(e.g. -f MAG_AUTO 17 21 -f MAGERR_AUTO 0 0.5)",
+                            default=None)
         parser.add_argument("--centroids", help="recompute the centroids using the mask and 2x1D gaussian",
                             action='store_true')
-        parser.add_argument("--compression", help="compression level for the h5 output file,"
+        parser.add_argument("--compression", help="compression level for the HDF5 output file,"
                                                   "lower is faster (def: medium)",
                             choices=["none", "low", "medium", "high"], default="medium")
         parser.add_argument("--warn", help="Print warnings", action='store_true')
@@ -36,5 +41,5 @@ if __name__ == "__main__":
     if not args.warn:
         warnings.filterwarnings('ignore', category=Warning, append=True)
 
-    cutter = Cutter(args.margin, args.max_stellarity, args.centroids, args.compression)
+    cutter = Cutter(args.margin, args.max_stellarity, args.filter, args.centroids, args.compression)
     cutter.cut_tiles(args.input, args.sextracted, args.output)

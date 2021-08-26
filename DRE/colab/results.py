@@ -28,7 +28,7 @@ class Result:
         return self.table.__setitem__(key, value)
 
     def __repr__(self):
-        return self.table.__repr__()
+        self.table.show_in_notebook()
 
     def __len__(self):
         return len(self.table)
@@ -122,7 +122,7 @@ class Result:
                 segment = cuts['seg'][:]
 
             model.convolve(self.psf, to_cpu=True)
-            mosaic = model.make_mosaic(data, segment, row['MODEL_IDX'])
+            mosaic = model.make_mosaic(data, segment, tuple(row['MODEL_IDX']))
 
             if save:
                 os.makedirs(mosaics_dir, exist_ok=True)

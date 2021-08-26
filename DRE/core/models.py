@@ -22,6 +22,8 @@ class ModelsCube:
         astropy header of the models fits file
     original_shape : tuple
         shape of the models as saved in the fits file (ax_ratio, angle x x_image, log_r x y_image)
+    src_index : ndarray
+        numpy array with the Sérsic index axis
     log_r : ndarray
         numpy array with the log_r axis
     angle : ndarray
@@ -68,6 +70,7 @@ class ModelsCube:
         self.header = None
         self.original_shape = None
 
+        self.src_index = None
         self.log_r = None
         self.angle = None
         self.ax_ratio = None
@@ -102,7 +105,7 @@ class ModelsCube:
         tuple
             name of each axis
         """
-        return 'ax_ratio', 'angle', 'log_r', 'x_image', 'y_image'
+        return 'src_index', 'ax_ratio', 'angle', 'log_r', 'x_image', 'y_image'
 
     @property
     def axes(self):
@@ -112,7 +115,7 @@ class ModelsCube:
         tuple
             arrays of each axis
         """
-        return self.ax_ratio, self.angle, self.log_r, self.x_image, self.y_image
+        return self.src_index, self.ax_ratio, self.angle, self.log_r, self.x_image, self.y_image
 
     def load_models(self, models_file):
         """
@@ -127,13 +130,21 @@ class ModelsCube:
 
         cube = fits.getdata(models_file).astype('float')
         self.original_shape = cube.shape
-        cube = cube.reshape(self.header["NAXRAT"], self.header["NPOSANG"],
-                            self.header["BOXSIZE"], self.header["NLOGH"],
-                            self.header["BOXSIZE"])
+        if "NINDEX" in self.header:
+            cube = cube.reshape(self.header["NINDEX"], self.header["NAXRAT"], self.header["NPOSANG"],
+                                self.header["BOXSIZE"], self.header["NLOGH"], self.header["BOXSIZE"])
+        else:
+            # the old cube without Sérsic index
+            cube = cube.reshape(1, self.header["NAXRAT"], self.header["NPOSANG"],
+                                self.header["BOXSIZE"], self.header["NLOGH"], self.header["BOXSIZE"])
+            self.header["INDEX0"] = 4.0
+            self.header["NINDEX"] = 1
+            self.header["DINDEX"] = 0
         # swap log_r and x_image
-        cube = cube.swapaxes(2, 3)
+        cube = cube.swapaxes(-2, -3)
         self.models = cube
 
+        self.src_index = np.arange(self.header["NINDEX"]) * self.header["DINDEX"] + self.header["INDEX0"]
         self.log_r = np.arange(self.header["NLOGH"]) * self.header["DLOGH"] + self.header["LOGH0"]
         self.angle = np.arange(self.header["NPOSANG"]) * self.header["DPOSANG"] + self.header["POSANG0"]
         self.ax_ratio = np.arange(self.header["NAXRAT"]) * self.header["DAXRAT"] + self.header["AXRAT0"]
@@ -150,7 +161,7 @@ class ModelsCube:
             the path to the fits file to save the models
         """
 
-        cube = self.convolved_models.swapaxes(2, 3)
+        cube = self.convolved_models.swapaxes(-2, -3)
         cube = cube.reshape(self.original_shape)
         models_hdu = fits.ImageHDU(data=cube)
         header_hdu = fits.PrimaryHDU(header=self.header)
@@ -266,17 +277,21 @@ class ModelsCube:
         parameters : dict
             dictionary with the parameters
         """
+        parameters = dict()
 
-        e, t, r = np.unravel_index(np.nanargmin(chi_cube), chi_cube.shape)
-        min_chi = np.nanmin(chi_cube)
-        chi_std = np.std(chi_cube)
-        log_r_chi, log_r_var, log_r_chi_var = self.pond_rad_3d(chi_cube, self.log_r[r])
-        log_r_parab, log_r_std = fit_parabola_1d(np.log(chi_cube), (e, t, r), self.log_r)
+        parameters['MODEL_IDX'] = np.unravel_index(np.nanargmin(chi_cube), chi_cube.shape)
+        n, e, t, r = parameters['MODEL_IDX']
+        parameters['CHI'] = np.nanmin(chi_cube)
+        parameters['CHI_STD'] = np.std(chi_cube)
+        parameters['LOGR_CHI'], parameters['LOGR_VAR'], parameters['LOGR_CHI_VAR'] = self.pond_rad_3d(chi_cube,
+                                                                                                      self.log_r[r])
 
-        parameters = {'R_IDX': r, 'E_IDX': e, 'T_IDX': t,
-                      'LOGR': self.log_r[r], 'AX_RATIO': self.ax_ratio[e], 'ANGLE': self.angle[t],
-                      'LOGR_CHI': log_r_chi, 'LOGR_VAR': log_r_var, 'LOGR_CHI_VAR': log_r_chi_var,
-                      'LOGR_PARAB': log_r_parab, 'LOGR_STD': log_r_std, 'CHI': min_chi, 'CHI_STD': chi_std}
+        parameters['LOGR_PARAB'], parameters['LOGR_STD'] = fit_parabola_1d(np.log(chi_cube),
+                                                                           parameters['MODEL_IDX'],
+                                                                           self.log_r)
+
+        parameters = {'INDEX': self.src_index[n], 'LOGR': self.log_r[r],
+                      'AX_RATIO': self.ax_ratio[e], 'ANGLE': self.angle[t]}
         return parameters
 
     def make_mosaic(self, data, segment, model_index):

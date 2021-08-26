@@ -39,13 +39,13 @@ def parabola_1d(x, y):
 
 
 def fit_parabola_1d(cube, idx_min, log_r, window=3):
-    i_min = idx_min[2]
+    i_min = idx_min[3]
     i_min = max(i_min, window // 2)
     i_min = min(i_min, len(log_r) - 1 - window // 2)
 
     r_slice = slice(i_min - window // 2, i_min + window // 2 + 1)
     window_r = log_r[r_slice]
-    window_chi = cube[idx_min[0], idx_min[1], r_slice]
+    window_chi = cube[idx_min[0], idx_min[1], idx_min[2], r_slice]
 
     # y = a*x^2 + b*x + c
     c, b, a = parabola_1d(window_r, window_chi)
@@ -60,7 +60,7 @@ def fit_parabola_1d(cube, idx_min, log_r, window=3):
         parabola_r_min = np.nan
         parabola_r_std = np.nan
     elif outside_window:
-        parabola_r_min = log_r[idx_min[2]]
+        parabola_r_min = log_r[idx_min[3]]
         parabola_r_std = np.nan
     else:
         parabola_r_std = 1 / np.sqrt(2 * a)

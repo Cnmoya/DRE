@@ -64,14 +64,15 @@ class ModelGPU(ModelsCube):
             # fit all cuts in each file
             self.fit_file(input_file, output_file, psf, progress_status=f"({i + 1}/{len(files)})")
 
-    def visualize_model(self, ratio_idx, psf=None, figsize=(20, 20), vmin=0, vmax=100, cmap='gray'):
+    def visualize_model(self, src_index_idx, ax_ratio_idx,
+                        psf=None, figsize=(20, 20), vmin=0, vmax=100, cmap='gray'):
         plt.figure(figsize=figsize)
         if psf is not None:
             self.convolve(psf)
         else:
             self.convolved_models = self.models.copy()
-        models_slice = self.convolved_models.swapaxes(2, 3)[ratio_idx]
-        models_slice = models_slice.reshape(self.models.shape[1] * 128, self.models.shape[2] * 128)
+        models_slice = self.convolved_models[src_index_idx, ax_ratio_idx].swapaxes(-2, -3)
+        models_slice = models_slice.reshape(self.shape[-4] * self.shape[-2], self.shape[-3] * self.shape[-1])
         plt.imshow(cp.asnumpy(models_slice), vmin=vmin, vmax=vmax, cmap=cmap)
         plt.axis('off')
         plt.show()

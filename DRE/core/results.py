@@ -1,5 +1,5 @@
 from astropy.table import Table, join
-from astropy.io import ascii
+from astropy.io import fits
 from collections import defaultdict
 from DRE.misc.read_catalog import cat_to_table
 import os
@@ -28,4 +28,4 @@ class Summary:
         table = join(table, cat_to_table(cat_file), join_type='inner')
         if 'VIGNET' in table.colnames:
             table.remove_column('VIGNET')
-        ascii.write(table=table, output=os.path.join("Summary", f"{self.name}.dat"), overwrite=True)
+        ascii.write(table=table, output=os.path.join("Summary", f"{self.name}_dre.fits"), overwrite=True)

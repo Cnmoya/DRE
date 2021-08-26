@@ -290,8 +290,8 @@ class ModelsCube:
                                                                            parameters['MODEL_IDX'],
                                                                            self.log_r)
 
-        parameters = {'INDEX': self.src_index[n], 'LOGR': self.log_r[r],
-                      'AX_RATIO': self.ax_ratio[e], 'ANGLE': self.angle[t]}
+        parameters.update({'INDEX': self.src_index[n], 'LOGR': self.log_r[r],
+                           'AX_RATIO': self.ax_ratio[e], 'ANGLE': self.angle[t]})
         return parameters
 
     def make_mosaic(self, data, segment, model_index):

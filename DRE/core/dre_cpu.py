@@ -72,8 +72,8 @@ class ModelCPU(ModelsCube):
         """
         psf = get_psf(psf_file)
         convolve = partial(fftconvolve, in2=psf, mode='same', axes=(-2, -1))
-        # (10, 13, 21, 128, 128) -> (10 * 13 * 21, 128, 128)
-        flatten_shape = (np.prod(self.models.shape[:-2]), *self.models.shape[-2:])
+        # flatten first dimensions e.g. (4, 10, 13, 21, 128, 128) -> (4 * 10 * 13 * 21, 128, 128)
+        flatten_shape = (np.prod(self.models.shape[:-2]), * self.models.shape[-2:])
         with mp.Pool(n_proc) as pool:
             # convolve in parallel
             convolved = pool.map(convolve, self.models.reshape(flatten_shape))

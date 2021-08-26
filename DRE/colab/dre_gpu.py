@@ -29,8 +29,9 @@ class ModelGPU(ModelsCube):
         psf = cp.array(get_psf(psf_file))
         self.convolved_models = cp.zeros(self.models.shape)
         for i in range(self.convolved_models.shape[0]):
-            self.convolved_models[i] = gpu_fftconvolve(self.models[i], psf[cp.newaxis, cp.newaxis],
-                                                       axes=(-2, -1))
+            for j in range(self.convolved_models.shape[0]):
+                self.convolved_models[i, j] = gpu_fftconvolve(self.models[i, j], psf[cp.newaxis, cp.newaxis],
+                                                              axes=(-2, -1))
         if to_cpu:
             self.convolved_models = cp.asnumpy(self.convolved_models)
 
@@ -64,7 +65,7 @@ class ModelGPU(ModelsCube):
             # fit all cuts in each file
             self.fit_file(input_file, output_file, psf, progress_status=f"({i + 1}/{len(files)})")
 
-    def visualize_model(self, src_index_idx, ax_ratio_idx,
+    def visualize_model(self, ax_ratio_idx, src_index_idx=-1,
                         psf=None, figsize=(20, 20), vmin=0, vmax=100, cmap='gray'):
         plt.figure(figsize=figsize)
         if psf is not None:

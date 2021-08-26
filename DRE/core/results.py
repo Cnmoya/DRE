@@ -1,4 +1,4 @@
-from astropy.table import Table, join
+from astropy.table import QTable, join
 from collections import defaultdict
 from DRE.misc.read_catalog import cat_to_table
 import os
@@ -19,7 +19,7 @@ class Summary:
 
     def save(self, catalogs_dir='Sextracted'):
         os.makedirs('Summary', exist_ok=True)
-        table = Table(self.parameters)
+        table = QTable(self.parameters)
         if os.path.isdir(os.path.join(catalogs_dir, self.name)):
             cat_file = os.path.join(catalogs_dir, self.name, f"{self.name}_cat.fits")
         else:

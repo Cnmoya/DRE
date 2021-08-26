@@ -1,7 +1,7 @@
 import numpy as np
 from h5py import File
 from astropy.table import QTable, join, vstack
-from astropy.io import fits, ascii
+from astropy.io import fits
 import matplotlib.pyplot as plt
 from astropy.visualization import quantity_support
 from DRE.misc.read_catalog import cat_to_table
@@ -40,11 +40,11 @@ class Result:
         return self.table.loc['ROW', i]
 
     def save(self):
-        ascii.write(table=self.table, output=os.path.join(self.output_dir, f"{self.name}.dat"), overwrite=True)
+        self.table.write(os.path.join(self.output_dir, f"{self.name}_dre.fits"), overwrite=True)
 
     def load_summary(self, summary):
-        self.name = os.path.basename(summary).replace('.dat', '')
-        self.table = QTable(ascii.read(summary))
+        self.name = os.path.basename(summary).replace('_dre.fits', '')
+        self.table = QTable(fits.getdata(summary))
         self.table['ROW'] = np.arange(len(self.table))
         self.table.add_index('ROW')
         self.table.add_index('EXT_NUMBER')
@@ -78,7 +78,7 @@ class Result:
             plt.show()
         else:
             plt.figure(figsize=(8, 8))
-            for i, (key, label) in enumerate([('LOGR', r'$Log_{10}R$'), ('LOGR_CHI', r'$Log_{10}R_{\chi}$'),
+            for i, (key, label) in enumerate([('LOGR', r'$Log_{10}R$'), ('INDEX', r'$n$'),
                                               ('AX_RATIO', 'a/b'), ('ANGLE', r'$\theta$')]):
                 plt.subplot(2, 2, i + 1)
                 plt.hist(self.table[key], **kwargs)

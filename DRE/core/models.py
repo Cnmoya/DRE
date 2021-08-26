@@ -219,9 +219,8 @@ class ModelsCube:
         scale = flux_data / flux_models
         models = scale[..., backend.newaxis] * models
         chi = (data - models) ** 2 / (models + noise ** 2)
-        chi = backend.nanmean(chi, axis=-1)
 
-        return chi
+        return backend.nanmean(chi, axis=-1)
 
     def pond_rad_3d(self, chi_cube, log_r_min):
         """

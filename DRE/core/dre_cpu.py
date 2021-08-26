@@ -19,6 +19,17 @@ import datetime
 
 
 class ModelCPU(ModelsCube):
+    """
+    A ModelCube like object that can be shared between processes to save memory,
+    all attributes are the same as ModelsCube
+
+    Methods
+    -------
+    to_shared_mem(array)
+        sends the array to shared memory
+    convolve(psf_file, n_proc=1, *args, **kwargs)
+        convolves the models with the PSF using a pool of CPU workers
+    """
     def __init__(self, models_file=None, out_compression='none', save_mosaics=False):
         super().__init__(models_file, out_compression)
 
@@ -31,6 +42,15 @@ class ModelCPU(ModelsCube):
 
     @staticmethod
     def to_shared_mem(array):
+        """
+        sends the array to shared memory using a multiprocessing.Array object as buffer,
+        the array is assumed read-only so no lock is needed.
+
+        Parameters
+        ----------
+        array : ndarray
+            array to be send to shared memory
+        """
         shape = array.shape
         shared_array_base = mp.Array(ctypes.c_float, int(np.prod(shape)), lock=False)
         shared_array = np.ctypeslib.as_array(shared_array_base)
@@ -39,6 +59,17 @@ class ModelCPU(ModelsCube):
         return shared_array
 
     def convolve(self, psf_file, n_proc=1, *args, **kwargs):
+        """
+        convolves the models with the PSF and stores them in the convolved_models attribute as a shared array,
+        uses a multiprocessing.Pool for parallelization
+
+        Parameters
+        ----------
+        psf_file : str
+            the path to the file with the PSF in the format of PSFex output
+        n_proc : int
+            number of CPU processes to use
+        """
         psf = get_psf(psf_file)
         convolve = partial(fftconvolve, in2=psf, mode='same', axes=(-2, -1))
         # (10, 13, 21, 128, 128) -> (10 * 13 * 21, 128, 128)
@@ -51,6 +82,48 @@ class ModelCPU(ModelsCube):
 
 
 class Parallelize:
+    """
+    this object manages the parallelization an I/O. It has two sub-threads, one for reading the input and another to
+    write the output, and a list of sub-processes to do the fit in parallel. It assumes 'spawn' (Windows, Mac) start
+    method instead of 'fork' (the default in Linux) to be multi-thread safe.
+
+    Attributes
+    ----------
+    n_proc : int
+        number of processes to use in the calculation
+    processes : list
+        list with the processes
+    input_queue : multiprocessing.JoinableQueue
+        multiprocessing-safe queue to feed the input from the feed_thread to the processes
+    output_queue : multiprocessing.JoinableQueue
+        multiprocessing-safe queue to feed the output from the processes to the output thread
+    feed_thread : threading.Thread
+        thread that reads the input files and feeds the input to the processes
+    output_thread : threading.Thread
+        thread that takes the output of the processes and writes them into a output file
+    terminate : multiprocessing.Event
+        event to stop the program by user request (Ctrl+C)
+
+    Methods
+    -------
+    cpu_worker(model, input_queue, output_queue, terminate)
+        it's a worker that runs in a new process, it takes an input from the input_queue and uses a ModelCPU to make the
+        fit, then puts the output into the output_queue
+    feed_workers(names, input_file)
+        takes the input file (HD5F file with cuts), and puts the input in the input queue
+    get_output(model, input_name, n_tasks, output_file, table, progress_status)
+        gets the outputs from the output_queue and writes them into an output file
+    start_processes(self, model, input_name, names, input_file, output_file, table, progress_status)
+        starts the threads and processes
+    stop_processes()
+        joins the threads and processes
+    abort()
+        stops the processes by  user request (Ctrl+C)
+    fit_file(model, input_name, input_file, output_file, psf, cats_dir, progress_status='')
+        fits all the objects on an input file (HD5F file with cuts)
+    fit_dir(model, input_dir='Cuts', output_dir='Chi', psf_dir='PSF', cats_dir='Sextracted')
+        apply fit_file to each file in the input directory
+    """
 
     def __init__(self, n_proc, max_size=100):
         self.n_proc = n_proc

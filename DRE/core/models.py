@@ -37,8 +37,8 @@ class ModelsCube:
     load_models(models_file):
         loads the models fits file and reshapes it
     save_models(output_file):
-        saves the models into a fits file
-    convolve(psf_file):
+        saves the convolved models into a fits file
+    convolve(psf_file, *args, **kwargs):
         convolves the models whit the psf, is implemented in the child classes ModelsCPU and ModelsGPU depending on the
         acceleration method
     dre_fit(data, segment, noise, backend=numpy)
@@ -60,7 +60,7 @@ class ModelsCube:
         models_file : str
             the path to the fits file with the models
         out_compression : str
-            compression level for the H5Py output file, can be 'none', 'low', 'medium' or 'high'
+            compression level for the HDF5 output file, can be 'none', 'low', 'medium' or 'high'
         """
 
         self.models = None
@@ -142,7 +142,7 @@ class ModelsCube:
 
     def save_models(self, output_file):
         """128
-        saves the models into a fits file at the specified directory
+        saves the convolved models into a fits file at the specified directory
 
         Parameters
         ----------
@@ -150,10 +150,12 @@ class ModelsCube:
             the path to the fits file to save the models
         """
 
-        cube = self.models.swapaxes(2, 3)
+        cube = self.convolved_models.swapaxes(2, 3)
         cube = cube.reshape(self.original_shape)
-        models_fits = fits.ImageHDU(data=cube, header=self.header)
-        models_fits.writeto(output_file, overwrite=True)
+        models_hdu = fits.ImageHDU(data=cube)
+        header_hdu = fits.PrimaryHDU(header=self.header)
+        hdul = fits.HDUList([header_hdu, models_hdu])
+        hdul.writeto(output_file, overwrite=True)
 
     def convolve(self, psf_file, *args, **kwargs):
         """

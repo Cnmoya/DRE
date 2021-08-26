@@ -19,7 +19,7 @@ def parse_arguments():
     parser.add_argument("--chunk", help="Max size of the queue", type=int, default=100)
     parser.add_argument("--catalogs", help="Directory with the catalog files (def: Sextracted)",
                         type=str, default="Sextracted")
-    parser.add_argument("--compression", help="compression level for the h5 output file,"
+    parser.add_argument("--compression", help="compression level for the HDF5 output file,"
                                               "lower is faster (def: medium)",
                         choices=["none", "low", "medium", "high"], default="medium")
     parser.add_argument("--warn", help="Print warnings", action='store_true')

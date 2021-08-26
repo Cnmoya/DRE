@@ -29,7 +29,7 @@ class ModelGPU(ModelsCube):
         psf = cp.array(get_psf(psf_file))
         self.convolved_models = cp.zeros(self.models.shape)
         for i in range(self.convolved_models.shape[0]):
-            for j in range(self.convolved_models.shape[0]):
+            for j in range(self.convolved_models.shape[1]):
                 self.convolved_models[i, j] = gpu_fftconvolve(self.models[i, j], psf[cp.newaxis, cp.newaxis],
                                                               axes=(-2, -1))
         if to_cpu:

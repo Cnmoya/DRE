@@ -217,10 +217,9 @@ class ModelsCube:
         flux_models = backend.sum(models, axis=-1)
         flux_data = backend.nansum(data, axis=-1)
         scale = flux_data / flux_models
-        scaled_models = scale[..., backend.newaxis] * models
-        diff = data - scaled_models
-        residual = (diff ** 2) / (scaled_models + noise ** 2)
-        chi = backend.nanmean(residual, axis=-1)
+        models = scale[..., backend.newaxis] * models
+        chi = (data - models) ** 2 / (models + noise ** 2)
+        chi = backend.nanmean(chi, axis=-1)
 
         return chi
 

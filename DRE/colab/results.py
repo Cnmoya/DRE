@@ -28,7 +28,7 @@ class Result:
         return self.table.__setitem__(key, value)
 
     def __repr__(self):
-        return self.table.show_in_notebook()
+        return self.table.__repr__()
 
     def __len__(self):
         return len(self.table)

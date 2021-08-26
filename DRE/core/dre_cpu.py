@@ -148,8 +148,7 @@ class Parallelize:
                     parameters['EXT_NUMBER'] = int(ext)
                     parameters['NUMBER'] = int(numb)
                     if model.save_mosaics:
-                        model_idx = (parameters['E_IDX'], parameters['T_IDX'], parameters['R_IDX'])
-                        mosaic = model.make_mosaic(data, segment, model_idx)
+                        mosaic = model.make_mosaic(data, segment, parameters['MODEL_IDX'])
                 output_queue.put((name, success, chi_cube, parameters, mosaic))
                 input_queue.task_done()
         except KeyboardInterrupt:

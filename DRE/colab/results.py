@@ -44,7 +44,7 @@ class Result:
 
     def load_summary(self, summary):
         self.name = os.path.basename(summary).replace('_dre.fits', '')
-        self.table = QTable(fits.getdata(summary))
+        self.table = QTable.read(summary)
         self.table['ROW'] = np.arange(len(self.table))
         self.table.add_index('ROW')
         self.table.add_index('EXT_NUMBER')

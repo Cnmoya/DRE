@@ -1,6 +1,5 @@
 import cupy as cp
 import cupy
-from opt_einsum import contract_expression
 from h5py import File
 from tqdm import tqdm
 import matplotlib.pyplot as plt
@@ -16,11 +15,6 @@ class ModelGPU(ModelsCube):
         self.convolved = False
 
         self.to_gpu()
-
-        # optimized einstein sum contractions for GPU
-        self.contract_cube_x_image = contract_expression("ijkxy,xy->ijk", (10, 13, 21, 128, 128), (128, 128))
-        self.contract_image_x_image = contract_expression("xy,xy->", (128, 128), (128, 128))
-        self.contract_scale_x_model = contract_expression("ijk,ijkxy->ijkxy", (10, 13, 21), (10, 13, 21, 128, 128))
 
     def to_gpu(self):
         self.models = cp.array(self.models)

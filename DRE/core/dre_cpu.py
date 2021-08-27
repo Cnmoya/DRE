@@ -9,7 +9,7 @@ from scipy.signal import fftconvolve
 from functools import partial
 from h5py import File
 from DRE.core.models import ModelsCube
-from DRE.core.results import Summary
+from DRE.core.summary import Summary
 from DRE.misc.progress_bar import progress
 from DRE.misc.read_psf import get_psf
 from astropy.io import fits

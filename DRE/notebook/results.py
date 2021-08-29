@@ -33,6 +33,9 @@ class Result:
     def __len__(self):
         return len(self.table)
 
+    def show(self):
+        return self.table.show_in_notebook()
+
     def loc(self, cat_number, ext_number=0):
         return self.table.loc['EXT_NUMBER', ext_number].loc['NUMBER', cat_number]
 
@@ -210,3 +213,6 @@ class Results:
 
     def plot(self, x_key=None, y_key=None, s=5, **kwargs):
         self.total_results.plot(x_key, y_key, s, **kwargs)
+
+    def show(self):
+        return self.total_results.show()

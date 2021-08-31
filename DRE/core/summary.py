@@ -27,4 +27,4 @@ class Summary:
         table = join(table, cat_to_table(cat_file), join_type='inner')
         if 'VIGNET' in table.colnames:
             table.remove_column('VIGNET')
-        table.write(os.path.join("Summary", f"{self.name}_dre.fits"), overwrite=True)
+        table.write(os.path.join(save_dir, f"{self.name}_dre.fits"), overwrite=True)

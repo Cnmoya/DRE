@@ -216,7 +216,7 @@ class Parallelize:
         self.input_queue.cancel_join_thread()
         self.output_queue.cancel_join_thread()
 
-    def fit_file(self, model, input_name, input_file, output_file, psf, cats_dir, progress_status=''):
+    def fit_file(self, model, input_name, input_file, chi_file, output_dir, psf, cats_dir, progress_status=''):
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
         print(f"{progress_status}: {input_file}\t{len(names)} objects")
@@ -234,10 +234,10 @@ class Parallelize:
         # fit in parallel
         job_start = time.time()
         try:
-            self.start_processes(model, input_name, names, input_file, output_file, table, progress_status)
+            self.start_processes(model, input_name, names, input_file, chi_file, table, progress_status)
             self.stop_processes()
             # save summary
-            table.save(cats_dir)
+            table.save(output_dir, cats_dir)
             time_delta = datetime.timedelta(seconds=(time.time() - job_start))
             obj_s = len(names) / (time.time() - job_start)
             print(f"\n{progress_status}: finished in {str(time_delta)[:10]}s ({obj_s:1.3f} obj/s)")
@@ -245,21 +245,22 @@ class Parallelize:
             print("\nAborted by user request")
             self.abort()
 
-    def fit_dir(self, model, input_dir='Cuts', output_dir='Chi', psf_dir='PSF', cats_dir='Sextracted'):
+    def fit_dir(self, model, input_dir='Cuts', output_dir='Summary', chi_dir='Chi',
+                psf_dir='PSF', cats_dir='Sextracted'):
         print("Running DRE")
         start = time.time()
         # list with input files in input_dir
         files = os.listdir(input_dir)
-        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(chi_dir, exist_ok=True)
         for i, filename in enumerate(sorted(files)):
             input_file = os.path.join(input_dir, filename)
             name = os.path.basename(filename).replace('_cuts.h5', '')
-            output_file = os.path.join(output_dir, f"{name}_chi.h5")
+            chi_file = os.path.join(chi_dir, f"{name}_chi.h5")
             psf = os.path.join(psf_dir, f"{name}.psf")
-            if os.path.isfile(output_file):
-                os.remove(output_file)
+            if os.path.isfile(chi_file):
+                os.remove(chi_file)
             # fit all cuts in each file
-            self.fit_file(model, name, input_file, output_file, psf, cats_dir,
+            self.fit_file(model, name, input_file, chi_file, output_dir, psf, cats_dir,
                           progress_status=f"({i + 1}/{len(files)})")
             if self.terminate.is_set():
                 break

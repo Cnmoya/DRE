@@ -76,17 +76,19 @@ class Result:
 
     def hist(self, key=None, **kwargs):
         if key:
+            fig = plt.figure(figsize=(6, 6))
             plt.hist(self.table[key], **kwargs)
             plt.xlabel(key.lower(), fontsize=14)
             plt.show()
         else:
-            plt.figure(figsize=(8, 8))
+            fig = plt.figure(figsize=(8, 8))
             for i, (key, label) in enumerate([('LOGR', r'$Log_{10}R$'), ('INDEX', r'$n$'),
                                               ('AX_RATIO', 'a/b'), ('ANGLE', r'$\theta$')]):
                 plt.subplot(2, 2, i + 1)
                 plt.hist(self.table[key], **kwargs)
                 plt.xlabel(label, fontsize=14)
             plt.show()
+        return fig
 
     def plot(self, x_key=None, y_key=None, s=5, **kwargs):
         if x_key is not None and y_key is not None:
@@ -169,7 +171,7 @@ class Results:
                 result = Result(self.output_dir)
                 result.load_summary(os.path.join(self.output_dir, summary_file))
                 self.results.append(result)
-        else:
+        elif model is not None:
             print(f"loading results from {chi_dir}")
             files = os.listdir(chi_dir)
             for chi_file in sorted(files):
@@ -177,6 +179,8 @@ class Results:
                 result.load_chi(os.path.join(chi_dir, chi_file), model)
                 self.results.append(result)
             self.set_catalogs(catalogs_dir)
+        else:
+            print(f"Can't load summary from {self.output_dir}, please set a model to compute the parameters")
 
         self.set_images(images_dir)
         self.set_cuts(cuts_dir)
@@ -209,7 +213,7 @@ class Results:
             result.join_catalog(cat)
 
     def hist(self, key=None, **kwargs):
-        self.total_results.hist(key, **kwargs)
+        return self.total_results.hist(key, **kwargs)
 
     def plot(self, x_key=None, y_key=None, s=5, **kwargs):
         self.total_results.plot(x_key, y_key, s, **kwargs)

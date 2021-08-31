@@ -13,7 +13,8 @@ def parse_arguments():
     parser.add_argument("--psf", help="directory with PSF's (def: PSF)", type=str, default="PSF")
     parser.add_argument("-i", "--input", help="directory with cuts (def: Cuts)",
                         default="Cuts", type=str)
-    parser.add_argument("-o", "--output", help="output directory (def: Chi)", type=str, default="Chi")
+    parser.add_argument("-o", "--output", help="output directory (def: Summary)", type=str, default="Summary")
+    parser.add_argument("--chi", help="directory to save chi maps (def: Chi)", type=str, default="Chi")
     parser.add_argument("--mosaics", help="generate mosaics files for visualization", action="store_true")
     parser.add_argument("--cpu", help="Number of cpu's to use", type=int, default=1)
     parser.add_argument("--chunk", help="Max size of the queue", type=int, default=100)
@@ -40,4 +41,4 @@ if __name__ == "__main__":
     model = ModelCPU(args.model, args.compression, args.mosaics)
     parallelize = Parallelize(args.cpu, args.chunk)
     # fit in parallel
-    parallelize.fit_dir(model, args.input, args.output, args.psf, args.catalogs)
+    parallelize.fit_dir(model, args.input, args.output, args.chi, args.psf, args.catalogs)

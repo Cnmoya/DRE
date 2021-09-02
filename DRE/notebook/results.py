@@ -164,8 +164,8 @@ class Result:
                                     overwrite=True)
             else:
                 residual_slice = residual[src_index_idx, ax_ratio_idx].swapaxes(-2, -3)
-                residual_slice = residual_slice.reshape(self.shape[-4] * self.shape[-2],
-                                                        self.shape[-3] * self.shape[-1])
+                residual_slice = residual_slice.reshape(model.shape[-4] * model.shape[-2],
+                                                        model.shape[-3] * model.shape[-1])
                 plt.imshow(residual_slice, cmap=cmap, **kwargs)
                 plt.axis('off')
                 plt.show()

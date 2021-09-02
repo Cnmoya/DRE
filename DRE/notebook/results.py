@@ -143,7 +143,7 @@ class Result:
             print("You should define the cuts image first")
 
     def visualize_residuals(self, model, i, ax_ratio_idx, src_index_idx=-1, save=False, residuals_dir='Residuals',
-                            cmap='plasma', figsize=(20, 20), **kwargs):
+                            cmap='plasma', figsize=(20, 15), **kwargs):
         if self.cuts:
             row = self.row(i)
             cat_number, ext_number = row['NUMBER', 'EXT_NUMBER']
@@ -155,8 +155,7 @@ class Result:
 
             model.convolve(self.psf, to_cpu=True)
             residual = model.make_residual(data, segment)
-            residual = residual.swapaxes(-2, -3).reshape(model.shape[-4] * model.shape[-2],
-                                                         model.shape[-3] * model.shape[-1])
+            residual = residual.swapaxes(-2, -3).reshape(model.original_shape)
 
             if save:
                 os.makedirs(residuals_dir, exist_ok=True)
@@ -165,10 +164,10 @@ class Result:
                                                  f"{self.name}_{ext_number:02d}_{cat_number:04d}_residual.fits"),
                                     overwrite=True)
             else:
-                plt.suptitle(f'a/b = {model.ax_ratio[ax_ratio_idx]:.1f}, n = {model.src_index[src_index_idx]:.1f}',
-                             fontsize=20, y=0.85)
                 residual_slice = residual[src_index_idx, ax_ratio_idx]
                 plt.figure(figsize=figsize)
+                plt.suptitle(f'a/b = {model.ax_ratio[ax_ratio_idx]:.1f}, n = {model.src_index[src_index_idx]:.1f}',
+                             fontsize=20, y=0.85)
                 plt.imshow(residual_slice, cmap=cmap, **kwargs)
                 plt.axis('off')
                 plt.show()

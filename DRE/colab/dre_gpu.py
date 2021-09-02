@@ -59,7 +59,7 @@ class ModelGPU(ModelsCube):
             # fit all cuts in each file
             self.fit_file(input_file, output_file, psf, progress_status=f"({i + 1}/{len(files)})")
 
-    def visualize_model(self, ax_ratio_idx, src_index_idx=-1,
+    def visualize_model(self, src_index_idx=-1, ax_ratio_idx=-1,
                         psf=None, figsize=(20, 15), vmin=0, vmax=100, cmap='gray'):
         plt.figure(figsize=figsize)
         if psf is not None:

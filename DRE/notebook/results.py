@@ -76,19 +76,18 @@ class Result:
 
     def hist(self, key=None, **kwargs):
         if key:
-            fig = plt.figure(figsize=(6, 6))
+            plt.figure(figsize=(6, 6))
             plt.hist(self.table[key], **kwargs)
             plt.xlabel(key.lower(), fontsize=14)
             plt.show()
         else:
-            fig = plt.figure(figsize=(8, 8))
+            plt.figure(figsize=(8, 8))
             for i, (key, label) in enumerate([('LOGR', r'$Log_{10}R$'), ('INDEX', r'$n$'),
                                               ('AX_RATIO', 'a/b'), ('ANGLE', r'$\theta$')]):
                 plt.subplot(2, 2, i + 1)
                 plt.hist(self.table[key], **kwargs)
                 plt.xlabel(label, fontsize=14)
             plt.show()
-        return fig
 
     def plot(self, x_key=None, y_key=None, s=5, **kwargs):
         if x_key is not None and y_key is not None:
@@ -140,6 +139,37 @@ class Result:
                 plt.imshow(mosaic, cmap, **kwargs)
                 plt.axis('off')
                 plt.show()
+        else:
+            print("You should define the cuts image first")
+
+    def visualize_residuals(self, model, i, ax_ratio_idx, src_index_idx=-1, save=False, residuals_dir='Residuals',
+                            cmap='gray', **kwargs):
+        if self.cuts:
+            row = self.row(i)
+            cat_number, ext_number = row['NUMBER', 'EXT_NUMBER']
+
+            with File(os.path.join(self.cuts, f"{self.name}_cuts.h5"), 'r') as cuts_h5f:
+                cuts = cuts_h5f[f'{ext_number:02d}_{cat_number:04d}']
+                data = cuts['obj'][:]
+                segment = cuts['seg'][:]
+
+            model.convolve(self.psf, to_cpu=True)
+            residual = model.make_residual(data, segment)
+
+            if save:
+                os.makedirs(residuals_dir, exist_ok=True)
+                mosaic_fits = fits.ImageHDU(data=residual)
+                mosaic_fits.writeto(os.path.join(residuals_dir,
+                                                 f"{self.name}_{ext_number:02d}_{cat_number:04d}_residual.fits"),
+                                    overwrite=True)
+            else:
+                residual_slice = residual[src_index_idx, ax_ratio_idx].swapaxes(-2, -3)
+                residual_slice = residual_slice.reshape(self.shape[-4] * self.shape[-2],
+                                                        self.shape[-3] * self.shape[-1])
+                plt.imshow(residual_slice, cmap=cmap, **kwargs)
+                plt.axis('off')
+                plt.show()
+
         else:
             print("You should define the cuts image first")
 
@@ -213,7 +243,7 @@ class Results:
             result.join_catalog(cat)
 
     def hist(self, key=None, **kwargs):
-        return self.total_results.hist(key, **kwargs)
+        self.total_results.hist(key, **kwargs)
 
     def plot(self, x_key=None, y_key=None, s=5, **kwargs):
         self.total_results.plot(x_key, y_key, s, **kwargs)

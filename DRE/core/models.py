@@ -294,14 +294,15 @@ class ModelsCube:
 
     def make_mosaic(self, data, segment, model_index):
         """
-        makes a image with the data, the segment and the model, all scaled to the data  flux
+        makes an image with the data, the segment and the model, all scaled to the data flux.
+        Is intended to be only for visualization propose so no GPU/GPU parallelization is performed.
 
         Parameters
         ----------
         data : ndarray
             numpy array corresponding to a science image cut with the object at the center
         segment : ndarray
-            numpy/cupy array corresponding to a segmentation image cut
+            numpy array corresponding to a segmentation image cut
         model_index : tuple
             index of the optimal model
 
@@ -322,3 +323,28 @@ class ModelsCube:
         mosaic[3] = data - scaled_model
         mosaic = mosaic.reshape(len(self.x_image) * 4, len(self.y_image)).T
         return mosaic
+
+    def make_residual(self, data, segment):
+        """
+        makes an image with the residuals between the data and each model.
+        Is intended to be only for visualization propose so no GPU/GPU parallelization is performed
+
+        Parameters
+        ----------
+        data : ndarray
+            numpy array corresponding to a science image cut with the object at the center
+        segment : ndarray
+            numpy array corresponding to a segmentation image cut
+
+        Returns
+        -------
+        ndarray
+            numpy array with the residuals image in the same shape of the models cube
+        """
+
+        flux_models = np.einsum("...xy,xy", self.convolved_models, segment)
+        flux_data = np.einsum("xy,xy", data, segment)
+        scale = flux_data / flux_models
+        models = scale[..., np.newaxis] * self.convolved_models
+
+        return data - models

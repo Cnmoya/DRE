@@ -26,7 +26,10 @@ A python program to fit elliptical galaxies (De Vaucouleurs's profile) in astron
 it seeks to be a fast and efficient program using a set of precalculated models and CPU/GPU acceleration.
 
 ## Version Notes
-*  Fits a parabola to the residuals to find a minimum by interpolation
+* Option to use cubes with variable Sersic index
+* Fits a parabola to the residuals to find a minimum by interpolation
+* Visualize residuals cube in Colab
+* Change the summary format to .fits
 
 ## Requirements
 DRE requieres the following python packages that will be installed automatically when installing DRE with PIP:

@@ -9,11 +9,11 @@ from astropy.io import fits
 def run_sextractor(input_file, args):
     input_name = os.path.basename(input_file).replace('.fits', '')
     if args.subdir:
-        outdir = f"{args.output}/{input_name}"
+        outdir = os.path.join(args.output, input_name)
     else:
         outdir = args.output
     os.makedirs(outdir, exist_ok=True)
-    basename = f"{outdir}/{input_name}"
+    basename = os.path.join(outdir, input_name)
 
     sex_config = dict()
     sex_config['-c'] = args.config
@@ -23,10 +23,10 @@ def run_sextractor(input_file, args):
     sex_config["-CHECKIMAGE_NAME"] = f"{basename}_nb.fits,{basename}_rms.fits,{basename}_seg.fits"
 
     if args.flags:
-        sex_config["-FLAG_IMAGE"] = f"{args.flags}/{input_name}_flag.fits"
+        sex_config["-FLAG_IMAGE"] = os.path.join(args.flags, f"{input_name}_flag.fits")
 
     if args.weights:
-        sex_config["-WEIGHT_IMAGE"] = f"{args.weights}/{input_name}_wht.fits"
+        sex_config["-WEIGHT_IMAGE"] = os.path.join(args.weights, f"{input_name}_wht.fits")
 
     if args.gain:
         sex_config["-GAIN"] = compute_gain(input_file, args)
@@ -78,7 +78,7 @@ if __name__ == "__main__":
     def parse_arguments():
         parser = argparse.ArgumentParser(description='Wrapper for running SExtractor with DRE parameters')
 
-        parser.add_argument('-i', "--input", help="directory with input images to be SExctracted",
+        parser.add_argument('-i', "--input", help="directory with input images to be SExctracted (def: Tiles)",
                             default="Tiles", type=str)
         parser.add_argument('-o', "--output", help="output directory for sextracted data (def: Sextracted)",
                             type=str, default="Sextracted")
@@ -106,8 +106,8 @@ if __name__ == "__main__":
 
     args_ = parse_arguments()
 
-    _, _, files = next(os.walk(args_.input))
+    files = os.listdir(args_.input)
     for file in sorted(files):
         print(60 * "=")
         print(file)
-        run_sextractor(f"{args_.input}/{file}", args_)
+        run_sextractor(os.path.join(args_.input, file), args_)

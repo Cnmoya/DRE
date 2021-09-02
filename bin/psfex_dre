@@ -7,7 +7,7 @@ from subprocess import run
 
 def run_psfex(input_file, args):
     psfex_config = dict()
-    psfex_config['-c'] = f"{args.cwd}/{args.config}"
+    psfex_config['-c'] = os.path.join(args.cwd, args.config)
 
     options = [x for item in psfex_config.items() for x in item]
     command = ["psfex"] + [input_file] + options
@@ -41,6 +41,8 @@ if __name__ == "__main__":
     os.chdir(args_.output)
 
     for root, dirs, files in os.walk(os.path.join(args_.cwd, args_.input), topdown=False):
-        for file in files:
+        for file in sorted(files):
             if '_cat.fits' in file:
-                run_psfex(f"{root}/{file}", args_)
+                print(60 * "=")
+                print(file)
+                run_psfex(os.path.join(root, file), args_)

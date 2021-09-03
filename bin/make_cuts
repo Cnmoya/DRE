@@ -11,8 +11,10 @@ if __name__ == "__main__":
 
         parser.add_argument("-i", "--input", help="root directory to original data (def: Tiles)",
                             default="Tiles", type=str)
-        parser.add_argument("-s", "--sextracted", help="root directory to SExtracted data (def: Sextracted)",
+        parser.add_argument("-s", "--sextracted", help="root directory to SExtracted images (def: Sextracted)",
                             type=str, default="Sextracted")
+        parser.add_argument("-c", "--catalogs", help="directory with catalogs fits files (def: same as sextracted)",
+                            type=str, default=None)
         parser.add_argument("-o", "--output", help="output directory (def: Cuts)", type=str, default="Cuts")
         parser.add_argument("--margin", help="margin to exclude objects near the borders of the image (def: 80)",
                             type=int, default=80)
@@ -42,4 +44,4 @@ if __name__ == "__main__":
         warnings.filterwarnings('ignore', category=Warning, append=True)
 
     cutter = Cutter(args.margin, args.max_stellarity, args.filter, args.centroids, args.compression)
-    cutter.cut_tiles(args.input, args.sextracted, args.output)
+    cutter.cut_tiles(args.input, args.sextracted, args.catalogs, args.output)

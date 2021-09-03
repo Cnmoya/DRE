@@ -95,7 +95,7 @@ class Cutter:
                         cut += 1
         print(f"\n{progress_status}: {cut} cuts")
 
-    def cut_tiles(self, tiles='Tiles', sextracted='Sextracted', output='Cuts'):
+    def cut_tiles(self, tiles='Tiles', sextracted='Sextracted', catalogs=None, output='Cuts'):
         # walk directory recursively
         _, _, files = next(os.walk(tiles))
         os.makedirs(output, exist_ok=True)
@@ -110,7 +110,10 @@ class Cutter:
             obj = fits.open(f"{basename}_nb.fits")
             noise = fits.open(f"{basename}_rms.fits")
             data = fits.open(os.path.join(tiles, f"{name}.fits"))
-            cat = cat_to_table(f"{basename}_cat.fits")
+            if catalogs is None:
+                cat = cat_to_table(f"{basename}_cat.fits")
+            else:
+                cat = cat_to_table(os.path.join(catalogs, f"{name}_cat.fits"))
 
             out_name = os.path.join(output, f"{name}_cuts.h5")
             if os.path.isfile(out_name):

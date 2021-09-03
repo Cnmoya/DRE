@@ -346,5 +346,5 @@ class ModelsCube:
         flux_data = np.einsum("xy,xy", data, segment)
         scale = flux_data / flux_models
         models = scale[..., np.newaxis, np.newaxis] * self.convolved_models
-
-        return data - models
+        residual = data - models
+        return residual.swapaxes(-2, -3).reshape(self.original_shape)

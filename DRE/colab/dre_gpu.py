@@ -19,13 +19,16 @@ class ModelGPU(ModelsCube):
     def to_gpu(self):
         self.models = cp.array(self.models)
 
+    @staticmethod
+    def _convolve_method(in1, in2):
+        return gpu_fftconvolve(in1, in2, axes=(-2, -1))
+
     def convolve(self, psf_file, to_cpu=False, *args, **kwargs):
         psf = cp.array(get_psf(psf_file))
         self.convolved_models = cp.zeros(self.models.shape)
         for i in range(self.convolved_models.shape[0]):
             for j in range(self.convolved_models.shape[1]):
-                self.convolved_models[i, j] = gpu_fftconvolve(self.models[i, j], psf[cp.newaxis, cp.newaxis],
-                                                              axes=(-2, -1))
+                self.convolved_models[i, j] = self._convolve_method(self.models[i, j], psf[cp.newaxis, cp.newaxis])
         if to_cpu:
             self.convolved_models = cp.asnumpy(self.convolved_models)
 
@@ -45,14 +48,14 @@ class ModelGPU(ModelsCube):
                     output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),
                                               dtype='float32', **self.compression)
 
-    def fit_dir(self, input_dir='Cuts', output_dir='Chi', psf_dir='PSF'):
+    def fit_dir(self, input_dir='Cuts', chi_dir='Chi', psf_dir='PSF'):
         # list with input files in input_dir
         files = os.listdir(input_dir)
-        os.makedirs(output_dir, exist_ok=True)
+        os.makedirs(chi_dir, exist_ok=True)
         for i, filename in enumerate(sorted(files)):
             input_file = os.path.join(input_dir, filename)
             name = os.path.basename(filename).replace('_cuts.h5', '')
-            output_file = os.path.join(output_dir, f"{name}_chi.h5")
+            output_file = os.path.join(chi_dir, f"{name}_chi.h5")
             psf = os.path.join(psf_dir, f"{name}.psf")
             if os.path.isfile(output_file):
                 os.remove(output_file)

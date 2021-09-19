@@ -5,6 +5,8 @@ import numpy
 import DRE
 from DRE.misc.h5py_compression import compression_types
 from DRE.misc.interpolation import fit_parabola_1d
+from DRE.misc.read_psf import get_psf
+from scipy.signal import fftconvolve
 
 
 class ModelsCube:
@@ -168,10 +170,14 @@ class ModelsCube:
         hdul = fits.HDUList([header_hdu, models_hdu])
         hdul.writeto(output_file, overwrite=True)
 
+    @staticmethod
+    def _convolve_method(in1, in2):
+        return fftconvolve(in1, in2, mode='same', axes=(-2, -1))
+
     def convolve(self, psf_file, *args, **kwargs):
         """
         convolves the models with the PSF and stores them in the convolved_models attribute,
-        is implemented in the child classes ModelsCPU and ModelsGPU depending on the acceleration method
+        is reimplemented in the child classes ModelsCPU and ModelsGPU depending on the acceleration method
 
         Parameters
         ----------
@@ -179,7 +185,11 @@ class ModelsCube:
             the path to the file with the PSF in the format of PSFex output
         """
 
-        pass
+        psf = get_psf(psf_file)
+        self.convolved_models = np.zeros(self.models.shape)
+        for i in range(self.convolved_models.shape[0]):
+            for j in range(self.convolved_models.shape[1]):
+                self.convolved_models[i, j] = self._convolve_method(self.models[i, j], psf[np.newaxis, np.newaxis])
 
     def dre_fit(self, data, segment, noise, backend=numpy):
         """
@@ -292,7 +302,7 @@ class ModelsCube:
                            'AX_RATIO': self.ax_ratio[e], 'ANGLE': self.angle[t]})
         return parameters
 
-    def make_mosaic(self, data, segment, model_index):
+    def make_mosaic(self, data, segment, model_index, psf=None):
         """
         makes an image with the data, the segment and the model, all scaled to the data flux.
         Is intended to be only for visualization propose so no GPU/GPU parallelization is performed.
@@ -305,6 +315,8 @@ class ModelsCube:
             numpy array corresponding to a segmentation image cut
         model_index : tuple
             index of the optimal model
+        psf : ndarray
+            a new PSF to use instead of self.convolved_models
 
         Returns
         -------
@@ -312,7 +324,11 @@ class ModelsCube:
             numpy array with the mosaic image
         """
 
-        model = self.convolved_models[model_index]
+        if psf is None:
+            model = self.convolved_models[model_index]
+        else:
+            model = self._convolve_method(self.models[model_index], psf)
+
         flux_model = np.einsum("xy,xy", model, segment)
         flux_data = np.einsum("xy,xy", data, segment)
         scaled_model = (flux_data / flux_model) * model

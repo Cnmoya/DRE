@@ -5,7 +5,6 @@ from threading import Thread
 import ctypes
 import numpy as np
 import numpy
-from scipy.signal import fftconvolve
 from functools import partial
 from h5py import File
 from DRE.core.models import ModelsCube
@@ -71,7 +70,7 @@ class ModelCPU(ModelsCube):
             number of CPU processes to use
         """
         psf = get_psf(psf_file)
-        convolve = partial(fftconvolve, in2=psf, mode='same', axes=(-2, -1))
+        convolve = partial(self._convolve_method, in2=psf)
         # flatten first dimensions e.g. (4, 10, 13, 21, 128, 128) -> (4 * 10 * 13 * 21, 128, 128)
         flatten_shape = (np.prod(self.models.shape[:-2]), * self.models.shape[-2:])
         with mp.Pool(n_proc) as pool:

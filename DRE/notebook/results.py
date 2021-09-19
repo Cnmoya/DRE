@@ -129,7 +129,7 @@ class Result:
                 data = cuts['obj'][:]
                 segment = cuts['seg'][:]
 
-            mosaic = self.model.make_mosaic(data, segment, tuple(row['MODEL_IDX']), psf=self.psf)
+            mosaic = self.model.make_mosaic(data, segment, tuple(row['MODEL_IDX']), psf_file=self.psf)
 
             if save:
                 os.makedirs(mosaics_dir, exist_ok=True)

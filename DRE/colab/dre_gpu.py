@@ -24,7 +24,7 @@ class ModelGPU(ModelsCube):
         return gpu_fftconvolve(in1, in2, axes=(-2, -1))
 
     def convolve(self, psf_file, to_cpu=False, *args, **kwargs):
-        psf = cp.array(get_psf(psf_file))
+        psf = get_psf(psf_file, backend=self.backend)
         self.convolved_models = cp.zeros(self.models.shape)
         for i in range(self.convolved_models.shape[0]):
             for j in range(self.convolved_models.shape[1]):
@@ -41,8 +41,7 @@ class ModelGPU(ModelsCube):
                 data = input_h5f[name]
                 chi = self.dre_fit(cp.array(data['obj'][:]),
                                    cp.array(data['seg'][:]),
-                                   cp.array(data['rms'][:]),
-                                   backend=cupy)
+                                   cp.array(data['rms'][:]))
             if not cp.isnan(chi).all():
                 with File(output_file, 'a') as output_h5f:
                     output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),

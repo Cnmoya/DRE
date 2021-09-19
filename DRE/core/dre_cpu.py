@@ -69,7 +69,7 @@ class ModelCPU(ModelsCube):
         n_proc : int
             number of CPU processes to use
         """
-        psf = get_psf(psf_file)
+        psf = get_psf(psf_file, backend=self.backend)
         convolve = partial(self._convolve_method, in2=psf)
         # flatten first dimensions e.g. (4, 10, 13, 21, 128, 128) -> (4 * 10 * 13 * 21, 128, 128)
         flatten_shape = (np.prod(self.models.shape[:-2]), * self.models.shape[-2:])

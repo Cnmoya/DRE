@@ -16,6 +16,8 @@ class ModelsCube:
 
     Attributes
     ----------
+    backend : module, optional
+            module tu use as backend, should be numpy or cupy
     models : ndarray
         numpy/cupy array with the cube of models, the axes are sorted as (ax_ratio, angle, log_r, x_image, y_image)
     convolved_models : ndarray
@@ -66,6 +68,7 @@ class ModelsCube:
         out_compression : str
             compression level for the HDF5 output file, can be 'none', 'low', 'medium' or 'high'
         """
+        self.backend = numpy
 
         self.models = None
         self.convolved_models = None
@@ -185,13 +188,13 @@ class ModelsCube:
             the path to the file with the PSF in the format of PSFex output
         """
 
-        psf = get_psf(psf_file)
+        psf = get_psf(psf_file, backend=self.backend)
         self.convolved_models = np.zeros(self.models.shape)
         for i in range(self.convolved_models.shape[0]):
             for j in range(self.convolved_models.shape[1]):
                 self.convolved_models[i, j] = self._convolve_method(self.models[i, j], psf[np.newaxis, np.newaxis])
 
-    def dre_fit(self, data, segment, noise, backend=numpy):
+    def dre_fit(self, data, segment, noise):
         """
         performs the fit with this steps:
             - masks the models, the data and the noise with the segment,
@@ -209,8 +212,7 @@ class ModelsCube:
             numpy/cupy array corresponding to a segmentation image cut
         noise : ndarray
             numpy/cupy array corresponding to a background RMS image cut
-        backend : module, optional
-            module tu use as backend, should be numpy or cupy
+
 
         Returns
         -------
@@ -219,18 +221,18 @@ class ModelsCube:
         """
 
         # mask all elements, faster with index for large arrays
-        mask_idx = backend.where(segment)
+        mask_idx = self.backend.where(segment)
         models = self.convolved_models[..., mask_idx[0], mask_idx[1]]
         data = data[mask_idx[0], mask_idx[1]]
         noise = noise[mask_idx[0], mask_idx[1]]
 
-        flux_models = backend.sum(models, axis=-1)
-        flux_data = backend.nansum(data, axis=-1)
+        flux_models = self.backend.sum(models, axis=-1)
+        flux_data = self.backend.nansum(data, axis=-1)
         scale = flux_data / flux_models
-        models = scale[..., backend.newaxis] * models
+        models = scale[..., self.backend.newaxis] * models
         chi = (data - models) ** 2 / (models + noise ** 2)
 
-        return backend.nanmean(chi, axis=-1)
+        return self.backend.nanmean(chi, axis=-1)
 
     def pond_rad_3d(self, chi_cube, log_r_min):
         """
@@ -302,7 +304,7 @@ class ModelsCube:
                            'AX_RATIO': self.ax_ratio[e], 'ANGLE': self.angle[t]})
         return parameters
 
-    def make_mosaic(self, data, segment, model_index, psf=None):
+    def make_mosaic(self, data, segment, model_index, psf_file=None):
         """
         makes an image with the data, the segment and the model, all scaled to the data flux.
         Is intended to be only for visualization propose so no GPU/GPU parallelization is performed.
@@ -315,7 +317,7 @@ class ModelsCube:
             numpy array corresponding to a segmentation image cut
         model_index : tuple
             index of the optimal model
-        psf : ndarray
+        psf_file : ndarray
             a new PSF to use instead of self.convolved_models
 
         Returns
@@ -324,9 +326,10 @@ class ModelsCube:
             numpy array with the mosaic image
         """
 
-        if psf is None:
+        if psf_file is None:
             model = self.convolved_models[model_index]
         else:
+            psf = get_psf(psf_file, backend=self.backend)
             model = self._convolve_method(self.models[model_index], psf)
 
         flux_model = np.einsum("xy,xy", model, segment)

@@ -45,6 +45,7 @@ class Result:
         return self.table.loc['ROW', i]
 
     def save(self):
+        os.makedirs(self.output_dir, exist_ok=True)
         self.table.write(os.path.join(self.output_dir, f"{self.name}_dre.fits"), overwrite=True)
 
     def load_summary(self, summary):
@@ -129,7 +130,7 @@ class Result:
                 data = cuts['obj'][:]
                 segment = cuts['seg'][:]
 
-            mosaic = self.model.make_mosaic(data, segment, tuple(row['MODEL_IDX']), psf=self.psf)
+            mosaic = self.model.make_mosaic(data, segment, tuple(row['MODEL_IDX']), psf_file=self.psf)
 
             if save:
                 os.makedirs(mosaics_dir, exist_ok=True)

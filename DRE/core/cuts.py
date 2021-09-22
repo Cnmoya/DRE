@@ -78,9 +78,9 @@ class Cutter:
 
                         # centroid + shift
                         if self.centroids:
-                            x_shift, y_shift = 128/2 - centroid_1dg(obj_cut, mask=~seg_cut)
+                            x_shift, y_shift = (self.image_size - 1)/2 - centroid_1dg(obj_cut, mask=~seg_cut)
                             obj_cut = shift(obj_cut, (y_shift, x_shift))
-                            seg_cut = shift(seg_cut, (y_shift, x_shift))
+                            seg_cut = shift(seg_cut, (y_shift, x_shift), prefilter=False)
                             rms_cut = shift(rms_cut, (y_shift, x_shift))
 
                         h5_group = h5_file.create_group(f"{ext_number:02d}_{row['NUMBER']:04d}")

@@ -208,8 +208,8 @@ class Results:
         elif model is not None:
             print(f"loading results from {chi_dir}")
             files = os.listdir(chi_dir)
-            for chi_file in sorted(files):
-                result = Result(model, self.output_dir)
+            for i, chi_file in enumerate(sorted(files)):
+                result = Result(model, self.output_dir, result_id=i)
                 result.load_chi(os.path.join(chi_dir, chi_file))
                 self.results.append(result)
             self.set_catalogs(catalogs_dir)

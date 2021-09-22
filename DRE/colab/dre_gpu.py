@@ -24,6 +24,10 @@ class ModelGPU(ModelsCube):
     def _convolve_method(in1, in2):
         return gpu_fftconvolve(in1, in2, axes=(-2, -1))
 
+    @staticmethod
+    def to_cpu(array):
+        return cp.asnumpy(array)
+
     def convolve(self, psf_file, to_cpu=False, *args, **kwargs):
         psf = get_psf(psf_file, backend=self.backend)
         self.convolved_models = cp.zeros(self.models.shape)

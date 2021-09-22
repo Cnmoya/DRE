@@ -177,6 +177,10 @@ class ModelsCube:
     def _convolve_method(in1, in2):
         return fftconvolve(in1, in2, mode='same', axes=(-2, -1))
 
+    @staticmethod
+    def to_cpu(array):
+        return array
+
     def convolve(self, psf_file, *args, **kwargs):
         """
         convolves the models with the PSF and stores them in the convolved_models attribute,
@@ -331,6 +335,7 @@ class ModelsCube:
         else:
             psf = get_psf(psf_file, backend=self.backend)
             model = self._convolve_method(self.models[model_index], psf)
+            model = self.to_cpu(model)
 
         flux_model = np.einsum("xy,xy", model, segment)
         flux_data = np.einsum("xy,xy", data, segment)

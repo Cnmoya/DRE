@@ -26,8 +26,11 @@ if __name__ == "__main__":
                                  "The format must be 'parameter min_value max_value' "
                                  "(e.g. -f MAG_AUTO 17 21 -f MAGERR_AUTO 0 0.5)",
                             type=str, default=None)
-        parser.add_argument("--centroids", help="recompute the centroids using the mask and 2x1D gaussian",
+        parser.add_argument("--centroids", help="recompute the centroids",
                             action='store_true')
+        parser.add_argument("--centroids_mode", help="options are 'com': center of mass, 'g1d': gaussian 1D, "
+                                                     "'g2d': gaussian 2D (def: com)",
+                            choices=["com", "g1d", "g2d"], default="com")
         parser.add_argument("--compression", help="compression level for the HDF5 output file,"
                                                   "lower is faster (def: medium)",
                             choices=["none", "low", "medium", "high"], default="medium")
@@ -43,5 +46,6 @@ if __name__ == "__main__":
     if not args.warn:
         warnings.filterwarnings('ignore', category=Warning, append=True)
 
-    cutter = Cutter(args.margin, args.max_stellarity, args.filter, args.centroids, args.compression)
+    cutter = Cutter(args.margin, args.max_stellarity, args.filter, args.centroids, args.centroids_mode,
+                    args.compression)
     cutter.cut_tiles(args.input, args.sextracted, args.catalogs, args.output)

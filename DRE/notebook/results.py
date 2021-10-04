@@ -120,15 +120,22 @@ class Result:
         self.table.add_index('EXT_NUMBER')
         self.table.add_index('NUMBER')
 
+    def get_data(self, i):
+        row = self.row(i)
+        cat_number, ext_number = row['NUMBER', 'EXT_NUMBER']
+
+        with File(os.path.join(self.cuts, f"{self.name}_cuts.h5"), 'r') as cuts_h5f:
+            cuts = cuts_h5f[f'{ext_number:02d}_{cat_number:04d}']
+            data = cuts['obj'][:]
+            segment = cuts['seg'][:]
+            noise = cuts['rms'][:]
+        return data, segment, noise
+
     def make_mosaic(self, i, save=False, mosaics_dir='Mosaics', cmap='gray', figsize=(15, 5), **kwargs):
         if self.cuts:
             row = self.row(i)
             cat_number, ext_number = row['NUMBER', 'EXT_NUMBER']
-
-            with File(os.path.join(self.cuts, f"{self.name}_cuts.h5"), 'r') as cuts_h5f:
-                cuts = cuts_h5f[f'{ext_number:02d}_{cat_number:04d}']
-                data = cuts['obj'][:]
-                segment = cuts['seg'][:]
+            data, segment, _ = self.get_data(i)
 
             mosaic = self.model.make_mosaic(data, segment, tuple(row['MODEL_IDX']), psf_file=self.psf)
 
@@ -151,13 +158,10 @@ class Result:
         if self.cuts:
             row = self.row(i)
             cat_number, ext_number = row['NUMBER', 'EXT_NUMBER']
+            data, segment, _ = self.get_data(i)
 
-            with File(os.path.join(self.cuts, f"{self.name}_cuts.h5"), 'r') as cuts_h5f:
-                cuts = cuts_h5f[f'{ext_number:02d}_{cat_number:04d}']
-                data = cuts['obj'][:]
-                segment = cuts['seg'][:]
-
-            self.model.convolve(self.psf, to_cpu=True)
+            if self.psf:
+                self.model.convolve(self.psf, to_cpu=True)
             residual = self.model.make_residual(data, segment)
 
             if save:
@@ -216,9 +220,18 @@ class Results:
         else:
             print(f"Can't load summary from {self.output_dir}, please set a model to compute the parameters")
 
-        self.set_images(images_dir)
-        self.set_cuts(cuts_dir)
-        self.set_psf(psf_dir)
+        if os.path.isdir(images_dir):
+            self.set_images(images_dir)
+        else:
+            pass
+        if os.path.isdir(cuts_dir):
+            self.set_cuts(cuts_dir)
+        else:
+            print(f"Can't find {cuts_dir} directory")
+        if os.path.isdir(psf_dir):
+            self.set_psf(psf_dir)
+        else:
+            print(f"Can't find {psf_dir} directory")
 
     @property
     def all(self):

@@ -13,8 +13,10 @@ quantity_support()
 
 class Result:
 
-    def __init__(self, output_dir):
+    def __init__(self, model=None, output_dir=None, result_id=0):
+        self.model = model
         self.output_dir = output_dir
+        self.result_id = result_id
         self.table = QTable()
         self.name = None
         self.image = None
@@ -43,17 +45,19 @@ class Result:
         return self.table.loc['ROW', i]
 
     def save(self):
+        os.makedirs(self.output_dir, exist_ok=True)
         self.table.write(os.path.join(self.output_dir, f"{self.name}_dre.fits"), overwrite=True)
 
     def load_summary(self, summary):
         self.name = os.path.basename(summary).replace('_dre.fits', '')
         self.table = QTable.read(summary)
         self.table['ROW'] = np.arange(len(self.table))
+        self.table['RESULT_ID'] = self.result_id
         self.table.add_index('ROW')
         self.table.add_index('EXT_NUMBER')
         self.table.add_index('NUMBER')
 
-    def load_chi(self, chi_file, model):
+    def load_chi(self, chi_file):
         self.name = os.path.basename(chi_file).replace('_chi.h5', '')
         parameters = defaultdict(list)
         with File(chi_file, 'r') as chi_h5f:
@@ -66,10 +70,11 @@ class Result:
                 parameters['NUMBER'].append(int(numb))
 
                 chi_cube = chi_h5f[name][:]
-                params = model.get_parameters(chi_cube)
+                params = self.model.get_parameters(chi_cube)
                 for key, value in params.items():
                     parameters[key].append(value)
         self.table = QTable(parameters)
+        self.table['RESULT_ID'] = self.result_id
 
     def visualize_detections(self):
         pass
@@ -78,7 +83,7 @@ class Result:
         if key:
             plt.figure(figsize=(6, 6))
             plt.hist(self.table[key], **kwargs)
-            plt.xlabel(key.lower(), fontsize=14)
+            plt.xlabel(key, fontsize=14)
             plt.show()
         else:
             plt.figure(figsize=(8, 8))
@@ -115,18 +120,24 @@ class Result:
         self.table.add_index('EXT_NUMBER')
         self.table.add_index('NUMBER')
 
-    def make_mosaic(self, model, i, save=False, mosaics_dir='Mosaics', cmap='gray', figsize=(15, 5), **kwargs):
+    def get_data(self, i):
+        row = self.row(i)
+        cat_number, ext_number = row['NUMBER', 'EXT_NUMBER']
+
+        with File(os.path.join(self.cuts, f"{self.name}_cuts.h5"), 'r') as cuts_h5f:
+            cuts = cuts_h5f[f'{ext_number:02d}_{cat_number:04d}']
+            data = cuts['obj'][:]
+            segment = cuts['seg'][:]
+            noise = cuts['rms'][:]
+        return data, segment, noise
+
+    def make_mosaic(self, i, save=False, mosaics_dir='Mosaics', cmap='gray', figsize=(15, 5), **kwargs):
         if self.cuts:
             row = self.row(i)
             cat_number, ext_number = row['NUMBER', 'EXT_NUMBER']
+            data, segment, _ = self.get_data(i)
 
-            with File(os.path.join(self.cuts, f"{self.name}_cuts.h5"), 'r') as cuts_h5f:
-                cuts = cuts_h5f[f'{ext_number:02d}_{cat_number:04d}']
-                data = cuts['obj'][:]
-                segment = cuts['seg'][:]
-
-            model.convolve(self.psf, to_cpu=True)
-            mosaic = model.make_mosaic(data, segment, tuple(row['MODEL_IDX']))
+            mosaic = self.model.make_mosaic(data, segment, tuple(row['MODEL_IDX']), psf_file=self.psf)
 
             if save:
                 os.makedirs(mosaics_dir, exist_ok=True)
@@ -142,19 +153,16 @@ class Result:
         else:
             print("You should define the cuts image first")
 
-    def visualize_residuals(self, model, i, src_index_idx=-1, ax_ratio_idx=-1, save=False, residuals_dir='Residuals',
-                            cmap='plasma', figsize=(20, 15), **kwargs):
+    def make_residuals(self, i, src_index_idx=-1, ax_ratio_idx=-1, save=False, residuals_dir='Residuals',
+                       cmap='plasma', figsize=(20, 15), **kwargs):
         if self.cuts:
             row = self.row(i)
             cat_number, ext_number = row['NUMBER', 'EXT_NUMBER']
+            data, segment, _ = self.get_data(i)
 
-            with File(os.path.join(self.cuts, f"{self.name}_cuts.h5"), 'r') as cuts_h5f:
-                cuts = cuts_h5f[f'{ext_number:02d}_{cat_number:04d}']
-                data = cuts['obj'][:]
-                segment = cuts['seg'][:]
-
-            model.convolve(self.psf, to_cpu=True)
-            residual = model.make_residual(data, segment)
+            if self.psf:
+                self.model.convolve(self.psf, to_cpu=True)
+            residual = self.model.make_residual(data, segment)
 
             if save:
                 os.makedirs(residuals_dir, exist_ok=True)
@@ -165,8 +173,8 @@ class Result:
             else:
                 residual_slice = residual[src_index_idx, ax_ratio_idx]
                 plt.figure(figsize=figsize)
-                plt.suptitle(f'a/b = {model.ax_ratio[ax_ratio_idx]:.1f}, n = {model.src_index[src_index_idx]:.1f}',
-                             fontsize=20, y=0.85)
+                title = f'a/b = {self.model.ax_ratio[ax_ratio_idx]:.1f}, n = {self.model.src_index[src_index_idx]:.1f}'
+                plt.suptitle(title, fontsize=20, y=0.85)
                 plt.imshow(residual_slice, cmap=cmap, **kwargs)
                 plt.axis('off')
                 plt.show()
@@ -179,8 +187,8 @@ class Results:
                  psf_dir='PSF', catalogs_dir='Sextracted', recompute=False):
         self.output_dir = output_dir
         self.results = []
-        self.total_results_ = Result(self.output_dir)
-        self.total_results_.name = "Total Results"
+        self.all_ = Result()
+        self.all_.name = "Total Results"
         self.load_results(model, chi_dir, images_dir, cuts_dir, psf_dir, catalogs_dir, recompute)
 
     def __getitem__(self, item):
@@ -197,29 +205,38 @@ class Results:
         if os.path.isdir(self.output_dir) and not recompute:
             print(f"loading results from {self.output_dir}")
             files = os.listdir(self.output_dir)
-            for summary_file in sorted(files):
-                result = Result(self.output_dir)
+            for i, summary_file in enumerate(sorted(files)):
+                result = Result(model, self.output_dir, result_id=i)
                 result.load_summary(os.path.join(self.output_dir, summary_file))
                 self.results.append(result)
         elif model is not None:
             print(f"loading results from {chi_dir}")
             files = os.listdir(chi_dir)
-            for chi_file in sorted(files):
-                result = Result(self.output_dir)
-                result.load_chi(os.path.join(chi_dir, chi_file), model)
+            for i, chi_file in enumerate(sorted(files)):
+                result = Result(model, self.output_dir, result_id=i)
+                result.load_chi(os.path.join(chi_dir, chi_file))
                 self.results.append(result)
             self.set_catalogs(catalogs_dir)
         else:
             print(f"Can't load summary from {self.output_dir}, please set a model to compute the parameters")
 
-        self.set_images(images_dir)
-        self.set_cuts(cuts_dir)
-        self.set_psf(psf_dir)
+        if os.path.isdir(images_dir):
+            self.set_images(images_dir)
+        else:
+            pass
+        if os.path.isdir(cuts_dir):
+            self.set_cuts(cuts_dir)
+        else:
+            print(f"Can't find {cuts_dir} directory")
+        if os.path.isdir(psf_dir):
+            self.set_psf(psf_dir)
+        else:
+            print(f"Can't find {psf_dir} directory")
 
     @property
-    def total_results(self):
-        self.total_results_.table = vstack([result.table for result in self.results])
-        return self.total_results_
+    def all(self):
+        self.all_.table = vstack([result.table for result in self.results])
+        return self.all_
 
     def set_images(self, images_dir):
         for result in self.results:
@@ -243,10 +260,10 @@ class Results:
             result.join_catalog(cat)
 
     def hist(self, key=None, **kwargs):
-        self.total_results.hist(key, **kwargs)
+        self.all.hist(key, **kwargs)
 
     def plot(self, x_key=None, y_key=None, s=5, **kwargs):
-        self.total_results.plot(x_key, y_key, s, **kwargs)
+        self.all.plot(x_key, y_key, s, **kwargs)
 
     def show(self):
-        return self.total_results.show()
+        return self.all.show()

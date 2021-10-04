@@ -10,7 +10,7 @@ if __name__ == "__main__":
         parser = argparse.ArgumentParser(description='Cut images of 128x128 centered in SExtracted objects')
 
         parser.add_argument("-i", "--input", help="root directory to original data (def: Tiles)",
-                            default="Tiles", type=str)
+                            type=str, default="Tiles")
         parser.add_argument("-s", "--sextracted", help="root directory to SExtracted images (def: Sextracted)",
                             type=str, default="Sextracted")
         parser.add_argument("-c", "--catalogs", help="directory with catalogs fits files (def: same as sextracted)",
@@ -20,14 +20,17 @@ if __name__ == "__main__":
                             type=int, default=80)
         parser.add_argument("--max-stellarity",
                             help="maximum SExtractor 'CLASS_STAR' stellarity to be considered a galaxy (def: 0.5)",
-                            default=0.5)
-        parser.add_argument("-f", "--filter", type=str, nargs='+', action='append',
+                            type=float, default=0.5)
+        parser.add_argument("-f", "--filter", nargs='+', action='append',
                             help="filter the data given a condition. "
                                  "The format must be 'parameter min_value max_value' "
                                  "(e.g. -f MAG_AUTO 17 21 -f MAGERR_AUTO 0 0.5)",
-                            default=None)
-        parser.add_argument("--centroids", help="recompute the centroids using the mask and 2x1D gaussian",
+                            type=str, default=None)
+        parser.add_argument("--centroids", help="recompute the centroids",
                             action='store_true')
+        parser.add_argument("--centroids-mode", help="options are 'com': center of mass, '1dg': 1D gaussian, "
+                                                     "'2dg': 2D gaussian (def: com)",
+                            choices=["com", "1dg", "2dg"], default="com")
         parser.add_argument("--compression", help="compression level for the HDF5 output file,"
                                                   "lower is faster (def: medium)",
                             choices=["none", "low", "medium", "high"], default="medium")
@@ -43,5 +46,6 @@ if __name__ == "__main__":
     if not args.warn:
         warnings.filterwarnings('ignore', category=Warning, append=True)
 
-    cutter = Cutter(args.margin, args.max_stellarity, args.filter, args.centroids, args.compression)
+    cutter = Cutter(args.margin, args.max_stellarity, args.filter, args.centroids, args.centroids_mode,
+                    args.compression)
     cutter.cut_tiles(args.input, args.sextracted, args.catalogs, args.output)

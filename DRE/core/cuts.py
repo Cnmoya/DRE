@@ -1,7 +1,7 @@
 from astropy.io import fits
 from astropy.nddata import Cutout2D
 from scipy.ndimage import shift, binary_dilation, measurements, binary_fill_holes
-from photutils.centroids import centroid_1dg
+from photutils.centroids import centroid_com, centroid_1dg, centroid_2dg
 from h5py import File
 import numpy as np
 import os
@@ -12,13 +12,15 @@ from DRE.misc.read_catalog import cat_to_table
 
 class Cutter:
 
-    def __init__(self, margin=80, max_stellarity=0.5, filters=None, centroids=False,
+    def __init__(self, margin=80, max_stellarity=0.5, filters=None, centroids=False, centroids_mode='com',
                  compression='none', image_size=128):
 
         self.margin = margin
         self.max_stellarity = max_stellarity
         self.image_size = image_size
         self.centroids = centroids
+        self.centroid_func = {'com': centroid_com, '1dg': centroid_1dg, '2dg': centroid_2dg}[centroids_mode]
+
         self.compression = compression_types[compression]
         if filters is None:
             self.extra_filters = []
@@ -39,7 +41,7 @@ class Cutter:
         else:
             return False
 
-    def cut_object(self, fits_data, cat_row, ext_number) -> np.ndarray:
+    def cut_object(self, fits_data, cat_row, ext_number):
         return Cutout2D(fits_data[ext_number].data,
                         (cat_row["X_IMAGE"] - 1, cat_row["Y_IMAGE"] - 1),
                         self.image_size).data.copy()
@@ -78,9 +80,10 @@ class Cutter:
 
                         # centroid + shift
                         if self.centroids:
-                            x_shift, y_shift = 128/2 - centroid_1dg(obj_cut, mask=~seg_cut)
+                            x_shift, y_shift = (self.image_size - 1)/2 - self.centroid_func(obj_cut, mask=~seg_cut)
                             obj_cut = shift(obj_cut, (y_shift, x_shift))
-                            seg_cut = shift(seg_cut, (y_shift, x_shift))
+                            # order 0 for segment as is binary
+                            seg_cut = shift(seg_cut, (y_shift, x_shift), order=0)
                             rms_cut = shift(rms_cut, (y_shift, x_shift))
 
                         h5_group = h5_file.create_group(f"{ext_number:02d}_{row['NUMBER']:04d}")

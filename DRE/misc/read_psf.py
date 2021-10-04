@@ -1,4 +1,5 @@
 from astropy.io import fits
+import numpy
 
 
 def psf_clean(psf):
@@ -7,9 +8,9 @@ def psf_clean(psf):
     return psf
 
 
-def get_psf(filename, ext_number=0):
+def get_psf(filename, ext_number=0, backend=numpy):
     with fits.open(filename) as hdul:
         data = hdul[ext_number + 1].data
         # psf to order 0
-        psf = data[0][0][0]
-        return psf_clean(psf)
+        psf = psf_clean(data[0][0][0])
+        return backend.array(psf)

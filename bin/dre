@@ -12,7 +12,7 @@ def parse_arguments():
     parser.add_argument("-m", "--model", help="models cube file", type=str, default=None)
     parser.add_argument("--psf", help="directory with PSF's (def: PSF)", type=str, default="PSF")
     parser.add_argument("-i", "--input", help="directory with cuts (def: Cuts)",
-                        default="Cuts", type=str)
+                        type=str, default="Cuts")
     parser.add_argument("-o", "--output", help="output directory (def: Summary)", type=str, default="Summary")
     parser.add_argument("--chi", help="directory to save chi maps (def: Chi)", type=str, default="Chi")
     parser.add_argument("--mosaics", help="generate mosaics files for visualization", action="store_true")

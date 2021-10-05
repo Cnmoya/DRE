@@ -26,7 +26,8 @@ def run_sextractor(input_file, args):
         sex_config["-FLAG_IMAGE"] = os.path.join(args.flags, f"{input_name}_flag.fits")
 
     if args.weights:
-        sex_config["-WEIGHT_IMAGE"] = os.path.join(args.weights, f"{input_name}_wht.fits")
+        weight_image = os.path.join(args.weights, f"{input_name}_wht.fits")
+        sex_config["-WEIGHT_IMAGE"] = f"{weight_image},{weight_image}"
 
     if args.gain:
         sex_config["-GAIN"] = compute_gain(input_file, args)
@@ -37,8 +38,20 @@ def run_sextractor(input_file, args):
     if args.fwhm:
         sex_config["-SEEING_FWHM"] = args.fwhm
 
+    if args.arg:
+        for (arg_name, arg_value) in args.arg:
+            sex_config[arg_name] = arg_value
+
+    if args.file:
+        for file_arg in args.file:
+            arg_name = file_arg[0]
+            file_names = []
+            for dirname in file_arg[1:]:
+                file_names.append(os.path.join(dirname, f"{input_name}_*.fits"))
+            sex_config[arg_name] = ','.join(file_names)
+
     options = [x for item in sex_config.items() for x in item]
-    command = ["sex"] + [input_file] + options
+    command = ["sex"] + [f"{input_file},{input_file}"] + options
     run(command)
 
 
@@ -78,9 +91,9 @@ if __name__ == "__main__":
     def parse_arguments():
         parser = argparse.ArgumentParser(description='Wrapper for running SExtractor with DRE parameters')
 
-        parser.add_argument('-i', "--input", help="directory with input images to be SExctracted (def: Tiles)",
+        parser.add_argument('-i', "--input", help="directory with input images to be measured (def: Tiles)",
                             default="Tiles", type=str)
-        parser.add_argument('-o', "--output", help="output directory for sextracted data (def: Sextracted)",
+        parser.add_argument('-o', "--output", help="output directory for SExtracted data (def: Sextracted)",
                             type=str, default="Sextracted")
         parser.add_argument('-c', "--config", help="SExtractor configuration file (def: default.sex)",
                             type=str, default="default.sex")
@@ -99,6 +112,16 @@ if __name__ == "__main__":
                             type=str, default='auto')
         parser.add_argument('-zp', '--zero-point', help="Zero-Point Magnitude", type=str)
         parser.add_argument('-fwhm', help="Value of seeing FWHM", type=str)
+        parser.add_argument('--arg', nargs='+', action='append',
+                            help="Pass any argument to SExtractor first pass the name of the argument and then "
+                                 "the values separated with coma (e.g. --arg PHOT_APERTURES 5,10,20)"
+                                 "can be used more than once", type=str)
+        parser.add_argument('--file', nargs='+', action='append',
+                            help="Pass any file to SExtractor first pass the name of the argument of the input "
+                                 "and then the directory containing each file, "
+                                 "the file must have the same name of the input except but a suffix"
+                                 "(e.g. --file WEIGHT_IMAGE detect_wht photo_wht)"
+                                 "can be used more than once", type=str)
 
         args = parser.parse_args()
 
@@ -107,7 +130,7 @@ if __name__ == "__main__":
     args_ = parse_arguments()
 
     files = os.listdir(args_.input)
-    for file in sorted(files):
-        print(60 * "=")
-        print(file)
+    for i, file in enumerate(sorted(files)):
+        print(80 * "=")
+        print(f"({i+1}/{len(files)}): {file}")
         run_sextractor(os.path.join(args_.input, file), args_)

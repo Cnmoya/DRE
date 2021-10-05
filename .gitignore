@@ -4,6 +4,7 @@ scripts/sex_source/
 scripts/test_multiprocess*
 scripts/test.h5
 DRE/models/modelbulge.fits
+bin/sex_dual
 
 # IDLE
 *.idea/

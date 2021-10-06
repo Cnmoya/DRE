@@ -6,14 +6,15 @@ from subprocess import run
 from astropy.io import fits
 
 
-def run_sextractor(input_file, args):
-    input_name = os.path.basename(input_file).replace('.fits', '')
+def run_sextractor(image_detection, image_measurement, args):
+    input_name_detect = os.path.basename(input_detection).replace('.fits', '')
+    input_name_meas = os.path.basename(input_measurements).replace('.fits', '')
     if args.subdir:
-        outdir = os.path.join(args.output, input_name)
+        outdir = os.path.join(args.output, input_name_meas)
     else:
         outdir = args.output
     os.makedirs(outdir, exist_ok=True)
-    basename = os.path.join(outdir, input_name)
+    basename = os.path.join(outdir, input_name_meas)
 
     sex_config = dict()
     sex_config['-c'] = args.config
@@ -23,14 +24,21 @@ def run_sextractor(input_file, args):
     sex_config["-CHECKIMAGE_NAME"] = f"{basename}_nb.fits,{basename}_rms.fits,{basename}_seg.fits"
 
     if args.flags:
-        sex_config["-FLAG_IMAGE"] = os.path.join(args.flags, f"{input_name}_flag.fits")
+        sex_config["-FLAG_IMAGE"] = os.path.join(args.flags, f"{input_name_detect}_flag.fits")
 
     if args.weights:
-        weight_image = os.path.join(args.weights, f"{input_name}_wht.fits")
-        sex_config["-WEIGHT_IMAGE"] = f"{weight_image},{weight_image}"
+        if len(args.weights) == 1:
+            weight_image_detect = os.path.join(args.weights[0], f"{input_name_detect}_wht.fits")
+            weight_image_meas = weight_image_detect
+        elif len(args.weights) == 2:
+            weight_image_detect = os.path.join(args.weights[0], f"{input_name_detect}_wht.fits")
+            weight_image_meas = os.path.join(args.weights[1], f"{input_name_meas}_wht.fits")
+        else:
+            raise ValueError("Wrong number of weights directories")
+        sex_config["-WEIGHT_IMAGE"] = f"{weight_image_detect},{weight_image_meas}"
 
     if args.gain:
-        sex_config["-GAIN"] = compute_gain(input_file, args)
+        sex_config["-GAIN"] = compute_gain(image_measurement, args)
 
     if args.zero_point:
         sex_config["-MAG_ZEROPOINT"] = args.zero_point
@@ -47,11 +55,11 @@ def run_sextractor(input_file, args):
             arg_name = file_arg[0]
             file_names = []
             for dirname in file_arg[1:]:
-                file_names.append(os.path.join(dirname, f"{input_name}_*.fits"))
+                file_names.append(os.path.join(dirname, f"{input_name_meas}_*.fits"))
             sex_config[arg_name] = ','.join(file_names)
 
     options = [x for item in sex_config.items() for x in item]
-    command = ["sex"] + [f"{input_file},{input_file}"] + options
+    command = ["sex"] + [f"{image_detection},{image_measurement}"] + options
     run(command)
 
 
@@ -91,8 +99,13 @@ if __name__ == "__main__":
     def parse_arguments():
         parser = argparse.ArgumentParser(description='Wrapper for running SExtractor with DRE parameters')
 
-        parser.add_argument('-i', "--input", help="directory with input images to be measured (def: Tiles)",
-                            default="Tiles", type=str)
+        parser.add_argument('-i', "--input", help="directory with input images for SExtractor "
+                                                  "can be uno directory for single mode or two for dual mode. "
+                                                  "In dual mode the images in each filter need to start with "
+                                                  "the same identifier followed by a separator (def: Tiles)",
+                            default="Tiles", type=str, nargs='+')
+        parser.add_argument('-sep', help="separator character between image name and filter (def: '_')",
+                            default='_', type=str)
         parser.add_argument('-o', "--output", help="output directory for SExtracted data (def: Sextracted)",
                             type=str, default="Sextracted")
         parser.add_argument('-c', "--config", help="SExtractor configuration file (def: default.sex)",
@@ -102,8 +115,9 @@ if __name__ == "__main__":
                                             "must have the same name as the input image but ending in '_flag'",
                             type=str)
         parser.add_argument('--weights', help="directory with fits images to be passed as WEIGHT_IMAGE, "
-                                              "must have the same name as the input image but ending in '_wht'",
-                            type=str)
+                                              "must have the same name as the input image but ending in '_wht',"
+                                              "can be one for single mode or two for dual mode",
+                            type=str, nargs='+')
         parser.add_argument('--gain', help="Can be 'counts' to read from the header and it as GAIN, "
                                            "'cps' to read from the header and use GAIN*EXPOSURE_TIME, "
                                            "or a float  in e-/ADU to be used directly as GAIN", type=str)
@@ -129,8 +143,20 @@ if __name__ == "__main__":
 
     args_ = parse_arguments()
 
-    files = os.listdir(args_.input)
-    for i, file in enumerate(sorted(files)):
-        print(80 * "=")
-        print(f"({i+1}/{len(files)}): {file}")
-        run_sextractor(os.path.join(args_.input, file), args_)
+    if len(args_.input) == 1:
+        input_detection, input_measurements = args_.input[0], args_.input[0]
+    elif len(args_.input) == 2:
+        input_detection, input_measurements = args_.input[0], args_.input[1]
+    else:
+        raise ValueError("Wrong number of inputs")
+    files_detect = os.listdir(input_detection)
+    files_meas = os.listdir(input_measurements)
+    for i, image_detect in enumerate(sorted(files_detect)):
+        name = image_detect.split(args_.sep)[0]
+        for image_meas in sorted(files_meas):
+            if name in image_meas:
+                print(80 * "=")
+                print(f"({i + 1}/{len(files_detect)}): {image_meas}")
+                run_sextractor(os.path.join(input_detection, image_detect),
+                               os.path.join(input_measurements, image_meas),
+                               args_)

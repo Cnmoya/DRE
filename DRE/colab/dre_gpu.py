@@ -37,8 +37,9 @@ class ModelGPU(ModelsCube):
         if to_cpu:
             self.convolved_models = cp.asnumpy(self.convolved_models)
 
-    def fit_file(self, input_file, output_file, psf, progress_status=''):
-        self.convolve(psf)
+    def fit_file(self, input_file, output_file, psf, convolve=True, progress_status=''):
+        if convolve:
+            self.convolve(psf)
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
         for name in tqdm(names, desc=progress_status, mininterval=0.5):
@@ -52,7 +53,7 @@ class ModelGPU(ModelsCube):
                     output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),
                                               dtype='float32', **self.compression)
 
-    def fit_dir(self, input_dir='Cuts', chi_dir='Chi', psf_dir='PSF'):
+    def fit_dir(self, input_dir='Cuts', chi_dir='Chi', psf_dir='PSF', convolve=True):
         # list with input files in input_dir
         files = os.listdir(input_dir)
         os.makedirs(chi_dir, exist_ok=True)
@@ -64,7 +65,7 @@ class ModelGPU(ModelsCube):
             if os.path.isfile(output_file):
                 os.remove(output_file)
             # fit all cuts in each file
-            self.fit_file(input_file, output_file, psf, progress_status=f"({i + 1}/{len(files)})")
+            self.fit_file(input_file, output_file, psf, convolve, progress_status=f"({i + 1}/{len(files)})")
 
     def visualize_model(self, src_index_idx=-1, ax_ratio_idx=-1,
                         psf=None, figsize=(20, 15), vmin=0, vmax=100, cmap='gray'):

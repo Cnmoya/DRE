@@ -13,10 +13,10 @@ class ModelNB(ModelsCube):
         self.convolved = False
         self.convolved_models = self.models.copy()
 
-    def fit_file(self, input_file, output_file, psf=None, progress_status=''):
+    def fit_file(self, input_file, output_file, psf, convolve, progress_status=''):
         if os.path.isfile(output_file):
             os.remove(output_file)
-        if psf is not None:
+        if convolve:
             self.convolve(psf)
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
@@ -39,12 +39,9 @@ class ModelNB(ModelsCube):
             input_file = os.path.join(input_dir, filename)
             name = os.path.basename(filename).replace('_cuts.h5', '')
             output_file = os.path.join(chi_dir, f"{name}_chi.h5")
-            if convolve:
-                psf = os.path.join(psf_dir, f"{name}.psf")
-            else:
-                psf = None
+            psf = os.path.join(psf_dir, f"{name}.psf")
             # fit all cuts in each file
-            self.fit_file(input_file, output_file, psf, progress_status=f"({i + 1}/{len(files)})")
+            self.fit_file(input_file, output_file, psf, convolve, progress_status=f"({i + 1}/{len(files)})")
 
     def visualize_model(self, src_index_idx=0, ax_ratio_idx=0, figsize=(10, 7), vmin=0, vmax=100, cmap='gray'):
         fig, ax = plt.subplots(figsize=figsize)

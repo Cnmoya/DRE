@@ -69,7 +69,7 @@ class ModelCPU(ModelsCube):
         n_proc : int
             number of CPU processes to use
         """
-        psf = get_psf(psf_file, backend=self.backend)
+        psf = get_psf(psf_file)
         convolve = partial(self._convolve_method, in2=psf)
         # flatten first dimensions e.g. (4, 10, 13, 21, 128, 128) -> (4 * 10 * 13 * 21, 128, 128)
         flatten_shape = (np.prod(self.models.shape[:-2]), * self.models.shape[-2:])
@@ -248,7 +248,6 @@ class Parallelize:
 
     def fit_dir(self, model, input_dir='Cuts', output_dir='Summary', chi_dir='Chi',
                 psf_dir='PSF', cats_dir='Sextracted', convolve=True):
-        print("Running DRE")
         start = time.time()
         # list with input files in input_dir
         files = os.listdir(input_dir)

@@ -42,7 +42,9 @@ if __name__ == "__main__":
 
     model = ModelCPU(args.model, args.compression, args.mosaics)
     parallelize = Parallelize(args.cpu, args.chunk)
+
     # fit in parallel
+    print("Running DRE")
     if os.path.isfile(args.psf):
         # convolve with the psf
         print("Convolving...")

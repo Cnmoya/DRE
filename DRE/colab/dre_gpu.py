@@ -13,7 +13,6 @@ class ModelGPU(ModelsCube):
     def __init__(self, models_file=None, out_compression='none'):
         super().__init__(models_file, out_compression)
         self.convolved = False
-        self.backend = cupy
 
         self.to_gpu()
 
@@ -29,7 +28,7 @@ class ModelGPU(ModelsCube):
         return cp.asnumpy(array)
 
     def convolve(self, psf_file, to_cpu=False, *args, **kwargs):
-        psf = get_psf(psf_file, backend=self.backend)
+        psf = cp.array(get_psf(psf_file))
         self.convolved_models = cp.zeros(self.models.shape)
         for i in range(self.convolved_models.shape[0]):
             for j in range(self.convolved_models.shape[1]):
@@ -47,7 +46,8 @@ class ModelGPU(ModelsCube):
                 data = input_h5f[name]
                 chi = self.dre_fit(cp.array(data['obj'][:]),
                                    cp.array(data['seg'][:]),
-                                   cp.array(data['rms'][:]))
+                                   cp.array(data['rms'][:]),
+                                   backend=cupy)
             if not cp.isnan(chi).all():
                 with File(output_file, 'a') as output_h5f:
                     output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),

@@ -7,8 +7,8 @@ from astropy.io import fits
 
 
 def run_sextractor(image_detection, image_measurement, args):
-    input_name_detect = os.path.basename(input_detection).replace('.fits', '')
-    input_name_meas = os.path.basename(input_measurements).replace('.fits', '')
+    input_name_detect = os.path.basename(image_detection).replace('.fits', '')
+    input_name_meas = os.path.basename(image_measurement).replace('.fits', '')
     if args.subdir:
         outdir = os.path.join(args.output, input_name_meas)
     else:
@@ -156,6 +156,9 @@ if __name__ == "__main__":
         for image_meas in sorted(files_meas):
             if name in image_meas:
                 print(80 * "=")
+                print(f"({i + 1}/{len(files_detect)}): {name}")
+                print('detections:', image_detect)
+                print('photometry:', image_meas)
                 print(f"({i + 1}/{len(files_detect)}): {image_meas}")
                 run_sextractor(os.path.join(input_detection, image_detect),
                                os.path.join(input_measurements, image_meas),

@@ -171,10 +171,6 @@ class ModelsCube:
         hdul.writeto(output_file, overwrite=True)
 
     @staticmethod
-    def _convolve_method(in1, in2):
-        return fftconvolve(in1, in2, mode='same', axes=(-2, -1))
-
-    @staticmethod
     def to_cpu(array):
         return array
 
@@ -193,7 +189,8 @@ class ModelsCube:
         self.convolved_models = np.zeros(self.models.shape)
         for i in range(self.convolved_models.shape[0]):
             for j in range(self.convolved_models.shape[1]):
-                self.convolved_models[i, j] = self._convolve_method(self.models[i, j], psf[np.newaxis, np.newaxis])
+                self.convolved_models[i, j] = fftconvolve(self.models[i, j], psf[np.newaxis, np.newaxis],
+                                                          mode='same', axes=(-2, -1))
 
     def dre_fit(self, data, segment, noise, backend=numpy):
         """
@@ -334,7 +331,7 @@ class ModelsCube:
         else:
             psf = get_psf(psf_file)
             model = self.to_cpu(self.models[model_index])
-            model = fftconvolve(model, psf)
+            model = fftconvolve(model, psf, mode='same', axes=(-2, -1))
 
         flux_model = np.einsum("xy,xy", model, segment)
         flux_data = np.einsum("xy,xy", data, segment)

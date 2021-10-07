@@ -20,10 +20,6 @@ class ModelGPU(ModelsCube):
         self.models = cp.array(self.models)
 
     @staticmethod
-    def _convolve_method(in1, in2):
-        return gpu_fftconvolve(in1, in2, axes=(-2, -1))
-
-    @staticmethod
     def to_cpu(array):
         return cp.asnumpy(array)
 
@@ -32,7 +28,8 @@ class ModelGPU(ModelsCube):
         self.convolved_models = cp.zeros(self.models.shape)
         for i in range(self.convolved_models.shape[0]):
             for j in range(self.convolved_models.shape[1]):
-                self.convolved_models[i, j] = self._convolve_method(self.models[i, j], psf[cp.newaxis, cp.newaxis])
+                self.convolved_models[i, j] = gpu_fftconvolve(self.models[i, j], psf[cp.newaxis, cp.newaxis],
+                                                              axes=(-2, -1))
         if to_cpu:
             self.convolved_models = cp.asnumpy(self.convolved_models)
 

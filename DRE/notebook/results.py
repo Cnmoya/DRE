@@ -113,8 +113,13 @@ class Result:
             plt.tight_layout()
             plt.show()
 
-    def join_catalog(self, cat_table):
-        self.table = join(self.table, QTable(cat_table), join_type='inner')
+    def join_catalog(self, cat_table, keys=None, table_names=('1', '2')):
+        self.table = join(self.table, QTable(cat_table), join_type='inner', keys=keys, table_names=table_names)
+        if 'EXT_NUMBER' not in self.table.colnames:
+            self.table['EXT_NUMBER'] = self.table[f'EXT_NUMBER_{table_names[0]}']
+        if 'NUMBER' not in self.table.colnames:
+            self.table['NUMBER'] = self.table[f'NUMBER_{table_names[0]}']
+        self.table.sort(['EXT_NUMBER', 'NUMBER'])
         self.table['ROW'] = np.arange(len(self.table))
         self.table.add_index('ROW')
         self.table.add_index('EXT_NUMBER')

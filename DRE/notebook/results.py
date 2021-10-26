@@ -51,11 +51,12 @@ class Result:
     def load_summary(self, summary):
         self.name = os.path.basename(summary).replace('_dre.fits', '')
         self.table = QTable.read(summary)
-        self.table['ROW'] = np.arange(len(self.table))
-        self.table['RESULT_ID'] = self.result_id
-        self.table.add_index('ROW')
-        self.table.add_index('EXT_NUMBER')
-        self.table.add_index('NUMBER')
+        if self.table:
+            self.table['ROW'] = np.arange(len(self.table))
+            self.table['RESULT_ID'] = np.ones(len(self)) * self.result_id
+            self.table.add_index('ROW')
+            self.table.add_index('EXT_NUMBER')
+            self.table.add_index('NUMBER')
 
     def load_chi(self, chi_file):
         self.name = os.path.basename(chi_file).replace('_chi.h5', '')
@@ -87,10 +88,10 @@ class Result:
             plt.show()
         else:
             plt.figure(figsize=(8, 8))
-            for i, (key, label) in enumerate([('LOGR', r'$Log_{10}R$'), ('INDEX', r'$n$'),
-                                              ('AX_RATIO', 'a/b'), ('ANGLE', r'$\theta$')]):
+            for i, (key, label) in enumerate([('INDEX', r'$n$'), ('AX_RATIO', 'a/b'),
+                                              ('ANGLE', r'$\theta$'), ('LOGR', r'$Log_{10}R$')]):
                 plt.subplot(2, 2, i + 1)
-                plt.hist(self.table[key], **kwargs)
+                plt.hist(self.table[key], bins=self.model.shape[i], **kwargs)
                 plt.xlabel(label, fontsize=14)
             plt.show()
 

@@ -35,6 +35,9 @@ class Result:
     def __len__(self):
         return len(self.table)
 
+    def __bool__(self):
+        return bool(self.table)
+
     def show(self):
         return self.table.show_in_notebook()
 
@@ -241,7 +244,7 @@ class Results:
 
     @property
     def all(self):
-        self.all_.table = vstack([result.table for result in self.results])
+        self.all_.table = vstack([result.table for result in self.results if result])
         return self.all_
 
     def set_images(self, images_dir):

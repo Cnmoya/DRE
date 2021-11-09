@@ -21,11 +21,15 @@ class Summary:
         os.makedirs(save_dir, exist_ok=True)
         table = QTable(self.parameters)
         if table:
-            if os.path.isdir(os.path.join(catalogs_dir, self.name)):
-                cat_file = os.path.join(catalogs_dir, self.name, f"{self.name}_cat.fits")
+            if os.path.isdir(os.path.join(catalogs_dir)):
+                if os.path.isdir(os.path.join(catalogs_dir, self.name)):
+                    cat_file = os.path.join(catalogs_dir, self.name, f"{self.name}_cat.fits")
+                else:
+                    cat_file = os.path.join(catalogs_dir, f"{self.name}_cat.fits")
+                table = join(table, cat_to_table(cat_file), join_type='inner')
+                if 'VIGNET' in table.colnames:
+                    table.remove_column('VIGNET')
             else:
-                cat_file = os.path.join(catalogs_dir, f"{self.name}_cat.fits")
-            table = join(table, cat_to_table(cat_file), join_type='inner')
-            if 'VIGNET' in table.colnames:
-                table.remove_column('VIGNET')
+                print(f"Warning: Can't find catalogs in {catalogs_dir}")
+
         table.write(os.path.join(save_dir, f"{self.name}_dre.fits"), overwrite=True)

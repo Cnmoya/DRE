@@ -22,11 +22,13 @@ class Result:
         self.image = None
         self.cuts = None
         self.psf = None
+        self.update = True
 
     def __getitem__(self, key):
         return self.table.__getitem__(key)
 
     def __setitem__(self, key, value):
+        self.update = True
         return self.table.__setitem__(key, value)
 
     def __repr__(self):
@@ -234,8 +236,15 @@ class Results:
             print(f"Can't find {psf_dir} directory")
 
     @property
+    def updated(self):
+        return all([result.update for result in self.results])
+
+    @property
     def all(self):
-        self.all_.table = vstack([result.table for result in self.results if result])
+        if not self.updated:
+            self.all_.table = vstack([result.table for result in self.results if result])
+            for result in self.results:
+                result.update = False
         return self.all_
 
     def set_images(self, images_dir):

@@ -13,7 +13,7 @@ class ModelNB(ModelsCube):
         self.convolved = False
         self.convolved_models = self.models.copy()
 
-    def fit_file(self, input_file, output_file, psf, convolve, progress_status=''):
+    def fit_file(self, input_file, output_file, psf=None, convolve=True, progress_status=''):
         if os.path.isfile(output_file):
             os.remove(output_file)
         if convolve:

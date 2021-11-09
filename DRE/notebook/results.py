@@ -22,11 +22,13 @@ class Result:
         self.image = None
         self.cuts = None
         self.psf = None
+        self.update = True
 
     def __getitem__(self, key):
         return self.table.__getitem__(key)
 
     def __setitem__(self, key, value):
+        self.update = True
         return self.table.__setitem__(key, value)
 
     def __repr__(self):
@@ -34,6 +36,9 @@ class Result:
 
     def __len__(self):
         return len(self.table)
+
+    def __bool__(self):
+        return bool(self.table)
 
     def show(self):
         return self.table.show_in_notebook()
@@ -44,6 +49,10 @@ class Result:
     def row(self, i):
         return self.table.loc['ROW', i]
 
+    @property
+    def colnames(self):
+        return self.table.colnames
+
     def save(self):
         os.makedirs(self.output_dir, exist_ok=True)
         self.table.write(os.path.join(self.output_dir, f"{self.name}_dre.fits"), overwrite=True)
@@ -51,11 +60,12 @@ class Result:
     def load_summary(self, summary):
         self.name = os.path.basename(summary).replace('_dre.fits', '')
         self.table = QTable.read(summary)
-        self.table['ROW'] = np.arange(len(self.table))
-        self.table['RESULT_ID'] = self.result_id
-        self.table.add_index('ROW')
-        self.table.add_index('EXT_NUMBER')
-        self.table.add_index('NUMBER')
+        if self.table:
+            self.table['ROW'] = np.arange(len(self.table))
+            self.table['RESULT_ID'] = np.ones(len(self), dtype=int) * self.result_id
+            self.table.add_index('ROW')
+            self.table.add_index('EXT_NUMBER')
+            self.table.add_index('NUMBER')
 
     def load_chi(self, chi_file):
         self.name = os.path.basename(chi_file).replace('_chi.h5', '')
@@ -87,34 +97,26 @@ class Result:
             plt.show()
         else:
             plt.figure(figsize=(8, 8))
-            for i, (key, label) in enumerate([('LOGR', r'$Log_{10}R$'), ('INDEX', r'$n$'),
-                                              ('AX_RATIO', 'a/b'), ('ANGLE', r'$\theta$')]):
+            for i, (key, label) in enumerate([('INDEX', r'$n$'), ('AX_RATIO', 'a/b'),
+                                              ('ANGLE', r'$\theta$'), ('LOGR', r'$Log_{10}R$')]):
                 plt.subplot(2, 2, i + 1)
-                plt.hist(self.table[key], **kwargs)
+                plt.hist(self.table[key], bins=self.model.shape[i], **kwargs)
                 plt.xlabel(label, fontsize=14)
             plt.show()
 
-    def plot(self, x_key=None, y_key=None, s=5, **kwargs):
-        if x_key is not None and y_key is not None:
-            plt.scatter(self.table[x_key], self.table[y_key], s=s, **kwargs)
-            plt.xlabel(x_key.lower(), fontsize=14)
-            plt.ylabel(y_key.lower(), fontsize=14)
-            plt.show()
-        else:
-            plt.figure(figsize=(12, 6))
-            plt.subplot(1, 2, 1)
-            plt.scatter(self.table['LOGR_CHI'], self.table['LOGR_CHI_VAR'], s=s, **kwargs)
-            plt.xlabel(r'$Log_{10}R_{\chi}$', fontsize=14)
-            plt.ylabel(r'$\Delta^2 R_{\chi}$', fontsize=14)
-            plt.subplot(1, 2, 2)
-            plt.scatter(self.table['LOGR_VAR'], self.table['LOGR_CHI_VAR'], s=s, **kwargs)
-            plt.xlabel(r'$\Delta^2 R$', fontsize=14)
-            plt.ylabel(r'$\Delta^2 R_{\chi}$', fontsize=14)
-            plt.tight_layout()
-            plt.show()
+    def plot(self, x_key, y_key, c=None, s=5, **kwargs):
+        plt.scatter(self.table[x_key], self.table[y_key], c=c, s=s, **kwargs)
+        plt.xlabel(x_key.lower(), fontsize=14)
+        plt.ylabel(y_key.lower(), fontsize=14)
+        plt.show()
 
-    def join_catalog(self, cat_table):
-        self.table = join(self.table, QTable(cat_table), join_type='inner')
+    def join_catalog(self, cat_table, keys=None, table_names=('1', '2')):
+        self.table = join(self.table, QTable(cat_table), join_type='inner', keys=keys, table_names=table_names)
+        if 'EXT_NUMBER' not in self.table.colnames:
+            self.table['EXT_NUMBER'] = self.table[f'EXT_NUMBER_{table_names[0]}']
+        if 'NUMBER' not in self.table.colnames:
+            self.table['NUMBER'] = self.table[f'NUMBER_{table_names[0]}']
+        self.table.sort(['EXT_NUMBER', 'NUMBER'])
         self.table['ROW'] = np.arange(len(self.table))
         self.table.add_index('ROW')
         self.table.add_index('EXT_NUMBER')
@@ -187,7 +189,7 @@ class Results:
                  psf_dir='PSF', catalogs_dir='Sextracted', recompute=False):
         self.output_dir = output_dir
         self.results = []
-        self.all_ = Result()
+        self.all_ = Result(model=model)
         self.all_.name = "Total Results"
         self.load_results(model, chi_dir, images_dir, cuts_dir, psf_dir, catalogs_dir, recompute)
 
@@ -234,8 +236,15 @@ class Results:
             print(f"Can't find {psf_dir} directory")
 
     @property
+    def updated(self):
+        return not any([result.update for result in self.results])
+
+    @property
     def all(self):
-        self.all_.table = vstack([result.table for result in self.results])
+        if not self.updated:
+            self.all_.table = vstack([result.table for result in self.results if result])
+            for result in self.results:
+                result.update = False
         return self.all_
 
     def set_images(self, images_dir):

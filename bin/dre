@@ -1,16 +1,18 @@
 #!/bin/env python
-
+import os.path
 import warnings
 import argparse
 from DRE.core.dre_cpu import ModelCPU, Parallelize
 from multiprocessing import set_start_method
+import time
 
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Run DRE with multiprocessing')
 
     parser.add_argument("-m", "--model", help="models cube file", type=str, default=None)
-    parser.add_argument("--psf", help="directory with PSF's (def: PSF)", type=str, default="PSF")
+    parser.add_argument("--psf", help="directory with a PSF for each file or a single PSF for all files (def: PSF)",
+                        type=str, default="PSF")
     parser.add_argument("-i", "--input", help="directory with cuts (def: Cuts)",
                         type=str, default="Cuts")
     parser.add_argument("-o", "--output", help="output directory (def: Summary)", type=str, default="Summary")
@@ -40,5 +42,17 @@ if __name__ == "__main__":
 
     model = ModelCPU(args.model, args.compression, args.mosaics)
     parallelize = Parallelize(args.cpu, args.chunk)
+
     # fit in parallel
-    parallelize.fit_dir(model, args.input, args.output, args.chi, args.psf, args.catalogs)
+    print("Running DRE")
+    if os.path.isfile(args.psf):
+        # convolve with the psf
+        print("Convolving...")
+        convolve_start = time.time()
+        model.convolve(args.psf, n_proc=args.cpu)
+        print(f"Convolved! ({time.time() - convolve_start:2.2f}s)")
+        parallelize.fit_dir(model, args.input, args.output, args.chi, args.psf, args.catalogs, convolve=False)
+    elif os.path.isdir(args.psf):
+        parallelize.fit_dir(model, args.input, args.output, args.chi, args.psf, args.catalogs, convolve=True)
+    else:
+        raise ValueError("PSF is not a file nor a directory")

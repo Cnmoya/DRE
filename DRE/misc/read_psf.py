@@ -8,9 +8,9 @@ def psf_clean(psf):
     return psf
 
 
-def get_psf(filename, ext_number=0, backend=numpy):
+def get_psf(filename, ext_number=0):
     with fits.open(filename) as hdul:
         data = hdul[ext_number + 1].data
         # psf to order 0
         psf = psf_clean(data[0][0][0])
-        return backend.array(psf)
+        return psf

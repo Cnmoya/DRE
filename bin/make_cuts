@@ -19,8 +19,8 @@ if __name__ == "__main__":
         parser.add_argument("--margin", help="margin to exclude objects near the borders of the image (def: 80)",
                             type=int, default=80)
         parser.add_argument("--max-stellarity",
-                            help="maximum SExtractor 'CLASS_STAR' stellarity to be considered a galaxy (def: 0.5)",
-                            type=float, default=0.5)
+                            help="maximum SExtractor 'CLASS_STAR' stellarity to be considered a galaxy (def: 1.0)",
+                            type=float, default=1.)
         parser.add_argument("-f", "--filter", nargs='+', action='append',
                             help="filter the data given a condition. "
                                  "The format must be 'parameter min_value max_value' "

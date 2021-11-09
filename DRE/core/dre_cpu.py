@@ -6,6 +6,7 @@ import ctypes
 import numpy as np
 import numpy
 from functools import partial
+from scipy.signal import fftconvolve
 from h5py import File
 from DRE.core.models import ModelsCube
 from DRE.core.summary import Summary
@@ -69,8 +70,8 @@ class ModelCPU(ModelsCube):
         n_proc : int
             number of CPU processes to use
         """
-        psf = get_psf(psf_file, backend=self.backend)
-        convolve = partial(self._convolve_method, in2=psf)
+        psf = get_psf(psf_file)
+        convolve = partial(fftconvolve, in2=psf, mode='same', axes=(-2, -1))
         # flatten first dimensions e.g. (4, 10, 13, 21, 128, 128) -> (4 * 10 * 13 * 21, 128, 128)
         flatten_shape = (np.prod(self.models.shape[:-2]), * self.models.shape[-2:])
         with mp.Pool(n_proc) as pool:
@@ -215,21 +216,23 @@ class Parallelize:
         self.input_queue.cancel_join_thread()
         self.output_queue.cancel_join_thread()
 
-    def fit_file(self, model, input_name, input_file, chi_file, output_dir, psf, cats_dir, progress_status=''):
+    def fit_file(self, model, input_name, input_file, chi_file, output_dir, psf, cats_dir,
+                 convolve=True, progress_status=''):
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
         print(f"{progress_status}: {input_file}\t{len(names)} objects")
         # table with summary
         table = Summary(input_name)
-        # convolve with the psf
-        print(f"{progress_status}: Convolving...")
-        convolve_start = time.time()
-        try:
-            model.convolve(psf, n_proc=self.n_proc)
-        except FileNotFoundError:
-            print(f"{progress_status}: Warning: Cannot find the PSF file {psf},\n\t skipping this tile")
-            return
-        print(f"{progress_status}: Convolved! ({time.time() - convolve_start:2.2f}s)")
+        if convolve:
+            # convolve with the psf
+            print(f"{progress_status}: Convolving...")
+            convolve_start = time.time()
+            try:
+                model.convolve(psf, n_proc=self.n_proc)
+            except FileNotFoundError:
+                print(f"{progress_status}: Warning: Cannot find the PSF file {psf},\n\t skipping this tile")
+                return
+            print(f"{progress_status}: Convolved! ({time.time() - convolve_start:2.2f}s)")
         # fit in parallel
         job_start = time.time()
         try:
@@ -245,8 +248,7 @@ class Parallelize:
             self.abort()
 
     def fit_dir(self, model, input_dir='Cuts', output_dir='Summary', chi_dir='Chi',
-                psf_dir='PSF', cats_dir='Sextracted'):
-        print("Running DRE")
+                psf_dir='PSF', cats_dir='Sextracted', convolve=True):
         start = time.time()
         # list with input files in input_dir
         files = os.listdir(input_dir)
@@ -259,7 +261,7 @@ class Parallelize:
             if os.path.isfile(chi_file):
                 os.remove(chi_file)
             # fit all cuts in each file
-            self.fit_file(model, name, input_file, chi_file, output_dir, psf, cats_dir,
+            self.fit_file(model, name, input_file, chi_file, output_dir, psf, cats_dir, convolve,
                           progress_status=f"({i + 1}/{len(files)})")
             if self.terminate.is_set():
                 break

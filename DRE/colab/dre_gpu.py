@@ -13,7 +13,6 @@ class ModelGPU(ModelsCube):
     def __init__(self, models_file=None, out_compression='none'):
         super().__init__(models_file, out_compression)
         self.convolved = False
-        self.backend = cupy
 
         self.to_gpu()
 
@@ -21,24 +20,22 @@ class ModelGPU(ModelsCube):
         self.models = cp.array(self.models)
 
     @staticmethod
-    def _convolve_method(in1, in2):
-        return gpu_fftconvolve(in1, in2, axes=(-2, -1))
-
-    @staticmethod
     def to_cpu(array):
         return cp.asnumpy(array)
 
     def convolve(self, psf_file, to_cpu=False, *args, **kwargs):
-        psf = get_psf(psf_file, backend=self.backend)
+        psf = cp.array(get_psf(psf_file))
         self.convolved_models = cp.zeros(self.models.shape)
         for i in range(self.convolved_models.shape[0]):
             for j in range(self.convolved_models.shape[1]):
-                self.convolved_models[i, j] = self._convolve_method(self.models[i, j], psf[cp.newaxis, cp.newaxis])
+                self.convolved_models[i, j] = gpu_fftconvolve(self.models[i, j], psf[cp.newaxis, cp.newaxis],
+                                                              axes=(-2, -1))
         if to_cpu:
             self.convolved_models = cp.asnumpy(self.convolved_models)
 
-    def fit_file(self, input_file, output_file, psf, progress_status=''):
-        self.convolve(psf)
+    def fit_file(self, input_file, output_file, psf, convolve=True, progress_status=''):
+        if convolve:
+            self.convolve(psf)
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
         for name in tqdm(names, desc=progress_status, mininterval=0.5):
@@ -46,13 +43,14 @@ class ModelGPU(ModelsCube):
                 data = input_h5f[name]
                 chi = self.dre_fit(cp.array(data['obj'][:]),
                                    cp.array(data['seg'][:]),
-                                   cp.array(data['rms'][:]))
+                                   cp.array(data['rms'][:]),
+                                   backend=cupy)
             if not cp.isnan(chi).all():
                 with File(output_file, 'a') as output_h5f:
                     output_h5f.create_dataset(f'{name}', data=cp.asnumpy(chi),
                                               dtype='float32', **self.compression)
 
-    def fit_dir(self, input_dir='Cuts', chi_dir='Chi', psf_dir='PSF'):
+    def fit_dir(self, input_dir='Cuts', chi_dir='Chi', psf_dir='PSF', convolve=True):
         # list with input files in input_dir
         files = os.listdir(input_dir)
         os.makedirs(chi_dir, exist_ok=True)
@@ -64,7 +62,7 @@ class ModelGPU(ModelsCube):
             if os.path.isfile(output_file):
                 os.remove(output_file)
             # fit all cuts in each file
-            self.fit_file(input_file, output_file, psf, progress_status=f"({i + 1}/{len(files)})")
+            self.fit_file(input_file, output_file, psf, convolve, progress_status=f"({i + 1}/{len(files)})")
 
     def visualize_model(self, src_index_idx=-1, ax_ratio_idx=-1,
                         psf=None, figsize=(20, 15), vmin=0, vmax=100, cmap='gray'):

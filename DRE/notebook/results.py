@@ -237,7 +237,7 @@ class Results:
 
     @property
     def updated(self):
-        return all([result.update for result in self.results])
+        return not any([result.update for result in self.results])
 
     @property
     def all(self):

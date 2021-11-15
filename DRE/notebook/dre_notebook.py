@@ -2,6 +2,7 @@ from h5py import File
 from tqdm.notebook import tqdm
 import matplotlib.pyplot as plt
 from DRE.core.models import ModelsCube
+from DRE.misc.read_psf import get_psf
 import numpy as np
 import os
 from matplotlib.widgets import Slider
@@ -17,7 +18,7 @@ class ModelNB(ModelsCube):
         if os.path.isfile(output_file):
             os.remove(output_file)
         if convolve:
-            self.convolve(psf)
+            self.convolve(get_psf(psf))
         with File(input_file, 'r') as input_h5f:
             names = list(input_h5f.keys())
         for name in tqdm(names, desc=progress_status, mininterval=0.5):

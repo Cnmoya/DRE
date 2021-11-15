@@ -3,6 +3,7 @@ import os.path
 import warnings
 import argparse
 from DRE.core.dre_cpu import ModelCPU, Parallelize
+from DRE.misc.read_psf import get_psf
 from multiprocessing import set_start_method
 import time
 
@@ -49,7 +50,7 @@ if __name__ == "__main__":
         # convolve with the psf
         print("Convolving...")
         convolve_start = time.time()
-        model.convolve(args.psf, n_proc=args.cpu)
+        model.convolve(get_psf(args.psf), n_proc=args.cpu)
         print(f"Convolved! ({time.time() - convolve_start:2.2f}s)")
         parallelize.fit_dir(model, args.input, args.output, args.chi, args.psf, args.catalogs, convolve=False)
     elif os.path.isdir(args.psf):

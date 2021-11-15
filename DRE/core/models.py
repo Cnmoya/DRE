@@ -42,7 +42,7 @@ class ModelsCube:
         loads the models fits file and reshapes it
     save_models(output_file):
         saves the convolved models into a fits file
-    convolve(psf_file, *args, **kwargs):
+    convolve(psf, *args, **kwargs):
         convolves the models whit the psf, is implemented in the child classes ModelsCPU and ModelsGPU depending on the
         acceleration method
     dre_fit(data, segment, noise, backend=numpy)
@@ -174,18 +174,17 @@ class ModelsCube:
     def to_cpu(array):
         return array
 
-    def convolve(self, psf_file, *args, **kwargs):
+    def convolve(self, psf, *args, **kwargs):
         """
         convolves the models with the PSF and stores them in the convolved_models attribute,
         is reimplemented in the child classes ModelsCPU and ModelsGPU depending on the acceleration method
 
         Parameters
         ----------
-        psf_file : str
-            the path to the file with the PSF in the format of PSFex output
+        psf : ndarray
+            array representing the PSF
         """
 
-        psf = get_psf(psf_file)
         self.convolved_models = np.zeros(self.models.shape)
         for i in range(self.convolved_models.shape[0]):
             for j in range(self.convolved_models.shape[1]):

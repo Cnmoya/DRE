@@ -4,7 +4,7 @@ from astropy.table import QTable, join, vstack
 from astropy.io import fits
 import matplotlib.pyplot as plt
 from astropy.visualization import quantity_support
-from DRE.misc.read_catalog import cat_to_table
+from DRE.misc import cat_to_table, get_psf
 from collections import defaultdict
 import os
 
@@ -163,7 +163,7 @@ class Result:
             data, segment, _ = self.get_data(i)
 
             if self.psf:
-                self.model.convolve(self.psf, to_cpu=True)
+                self.model.convolve(get_psf(self.psf), to_cpu=True)
             residual = self.model.make_residual(data, segment)
 
             if save:

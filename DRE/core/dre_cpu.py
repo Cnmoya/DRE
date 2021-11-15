@@ -27,7 +27,7 @@ class ModelCPU(ModelsCube):
     -------
     to_shared_mem(array)
         sends the array to shared memory
-    convolve(psf_file, n_proc=1, *args, **kwargs)
+    convolve(psf, n_proc=1, *args, **kwargs)
         convolves the models with the PSF using a pool of CPU workers
     """
     def __init__(self, models_file=None, out_compression='none', save_mosaics=False):
@@ -58,19 +58,19 @@ class ModelCPU(ModelsCube):
         shared_array[:] = array
         return shared_array
 
-    def convolve(self, psf_file, n_proc=1, *args, **kwargs):
+    def convolve(self, psf, n_proc=1, *args, **kwargs):
         """
         convolves the models with the PSF and stores them in the convolved_models attribute as a shared array,
         uses a multiprocessing.Pool for parallelization
 
         Parameters
         ----------
-        psf_file : str
-            the path to the file with the PSF in the format of PSFex output
+        psf : ndarray
+            array representing the PSF
         n_proc : int
             number of CPU processes to use
         """
-        psf = get_psf(psf_file)
+
         convolve = partial(fftconvolve, in2=psf, mode='same', axes=(-2, -1))
         # flatten first dimensions e.g. (4, 10, 13, 21, 128, 128) -> (4 * 10 * 13 * 21, 128, 128)
         flatten_shape = (np.prod(self.models.shape[:-2]), * self.models.shape[-2:])
@@ -228,7 +228,7 @@ class Parallelize:
             print(f"{progress_status}: Convolving...")
             convolve_start = time.time()
             try:
-                model.convolve(psf, n_proc=self.n_proc)
+                model.convolve(get_psf(psf), n_proc=self.n_proc)
             except FileNotFoundError:
                 print(f"{progress_status}: Warning: Cannot find the PSF file {psf},\n\t skipping this tile")
                 return
